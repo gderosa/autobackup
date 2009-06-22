@@ -118,8 +118,10 @@ class Machine
     data[:ram]                            = []
     doc.elements.each("node/node[@id='core']/node[@id='memory']/node") do |slot|
       hash                                = {}
+      next if slot.elements["description"] =~ /empty/i or !slot.elements["size"]
+      # detected an empty slot: skipped: TODO: report it with :empty=>true ? 
       hash[:size]                         = slot.elements["size"].text 
-      hash[:units]                        = 
+      hash[:units]                        = \
                                       slot.elements["size"].attributes["units"]
       data[:ram].push hash
     end
@@ -154,18 +156,40 @@ class Machine
     data[:disks]                          = [] 
     [
       "node/node/node/node[@id='ide']/node/node[@id='disk']",
-      "node/node/node/node[@id='storage']/node[@id='disk']"
+      "node/node/node/node[@id='storage']/node[@id='disk']",
+      "node/node/node/node/node[@class='disk']"
     ].each do |search_pattern|                        
       doc.elements.each(search_pattern) do |disk|
         hash                              = {}
         hash[:desc]                       = disk.elements["description"].text 
         hash[:logicalname]                = disk.elements["logicalname"].text
-        hash[:product]                    = disk.elements["product"].text 
-        hash[:vendor]                     = disk.elements["vendor"].text
-        hash[:serial]                     = disk.elements["serial"].text
+        begin
+          hash[:product]                  = disk.elements["product"].text 
+        rescue
+          hash[:product]                  = nil
+        end
+        begin
+          hash[:vendor]                   = disk.elements["vendor"].text
+        rescue
+          hash[:vendor]                   = nil
+        end
+        begin
+          hash[:serial]                   = disk.elements["serial"].text
+        rescue
+          hash[:serial]                   = nil
+        end
         hash[:size]                       = {}
-        hash[:size][:units]               = disk.elements["size"].attributes["units"]
-        hash[:size][:value]               = disk.elements["size"].text
+        begin
+          hash[:size][:units]             = disk.elements["size"].\
+                                              attributes["units"]
+        rescue
+          hash[:size][:units]             = nil
+        end
+        begin
+          hash[:size][:value]             = disk.elements["size"].text
+        rescue
+          hash[:size][:value]             = nil
+        end
         ################# PARTITIONS ##########################
         # TODO: partition/volume UUIDs? Patch lshw ;-) ?
         hash[:volumes]                    = []

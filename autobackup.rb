@@ -82,7 +82,7 @@ class Autobackup
 		basedir = @conf['dir']
 		@sftp.dir.foreach(basedir) do |entry|
 			name = entry.name
-		  unless name =~ /^\.\.?$/     								#exclude '.' and '..'
+		  unless name =~ /^\./  #exclude '.' and '..' and hidden directories
 				@remote_machines.push(
 					Machine.new(
 						:id => name, 

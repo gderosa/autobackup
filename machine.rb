@@ -132,11 +132,21 @@ class Machine
     data[:net]                            = []
     [
       "node/node/node[@id='pci']/node[@id='network']",
-      "node/node/node[@id='pci']/node/node[@id='network']"
+      "node/node/node[@id='pci']/node/node[@class='network']",
+      "node/node/node[@id='bridge']"
     ].each do |search_pattern|                        # TODO: ISA nework cards
       doc.elements.each(search_pattern) do |net|
+
+        # Is there a valid MAC address? Check, but be tolerant: various
+        # separator, not just ':', are allowed... or even *no* separator 
+        # at all (see the "[ :\.,;-_]?" in the regexp) .
+        tmp_mac_elm = net.elements["serial"]
+        next unless tmp_mac_elm
+        tmp_mac = tmp_mac_elm.text
+        next unless tmp_mac =~ /([0-9a-f]{2}[ :\.,;-_]?){5}[0-9a-f]{2}/i
+
         hash                              = {}
-        hash[:mac]                        = net.elements["serial"].text 
+        hash[:mac]                        = tmp_mac 
         hash[:logicalname]                = net.elements["logicalname"].text
         begin
           hash[:product]                  = net.elements["product"].text 
@@ -252,7 +262,7 @@ class Machine
       /123456789/,
       /System Name/i, /System Manufacturer/i
     ].each do |re|
-      return nil if str =~ re
+      return "BOGUS:#{str}" if str =~ re
     end
     return str
   end

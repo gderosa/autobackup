@@ -36,7 +36,7 @@ class Autobackup
 		
 		close_connection
 
-		# pp @remote_machines # DEBUG
+		pp @remote_machines # DEBUG
 
   end
 

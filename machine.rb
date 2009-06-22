@@ -54,7 +54,11 @@ class Machine
     ##################### CORE ##############################
     data[:name]                           = ckBogus(root.attributes["id"])
     data[:description]                    = ckBogus(elems["description"].text)
-    data[:product]                        = ckBogus(elems["product"].text)
+    begin
+      data[:product]                      = ckBogus(elems["product"].text)
+    rescue
+      data[:product]                      = nil
+    end
     data[:vendor]                         = ckBogus(elems["vendor"].text)
     data[:vendor]                         = ckBogus(elems["vendor"].text)
     data[:serial]                         = ckBogus(elems["serial"].text)
@@ -83,18 +87,32 @@ class Machine
 
     ##################### PROCESSOR #########################
     data[:cpu]                            = {}
-    data[:cpu][:vendor]                   = \
-      ckBogus(elems["node[@id='core']/node[@id='cpu']/vendor"].text)
-    data[:cpu][:product]                  = \
-      ckBogus(elems["node[@id='core']/node[@id='cpu']/product"].text)
-    data[:cpu][:bits]                     = \
-      ckBogus(elems["node[@id='core']/node[@id='cpu']/width"].text)
-    data[:cpu][:clock]                    = {}
-    data[:cpu][:clock][:value]            = \
-      ckBogus(elems["node[@id='core']/node[@id='cpu']/clock"].text)
-    data[:cpu][:clock][:units]            = \
-      ckBogus(elems["node[@id='core']/node[@id='cpu']/clock"].\
-              attributes["units"])
+    cpu                                   = \
+      elems["node[@id='core']/node[@id='cpu']"]
+    if (not cpu)
+      cpu                                 = \
+        elems["node[@id='core']/node[@id='cpu:0']"]
+    end
+    data[:cpu][:vendor]                   = cpu.elements["vendor"].text
+    data[:cpu][:product]                  = cpu.elements["product"].text
+    data[:cpu][:bits]                     = cpu.elements["width"].text
+
+    ["clock", "size", "capacity"].each do |word|
+      tmp_sym   = word.to_sym
+      tmp_elem  = cpu.elements[word]
+      if (not tmp_elem)
+        data[:cpu][tmp_sym] = nil
+        next
+      end
+      tmp_n     = tmp_elem.text.to_i
+      tmp_u     = tmp_elem.attributes["units"]
+      tmp_n = case tmp_u
+                when "kHz" then tmp_n * 1000
+                when "MHz" then tmp_n * 1000000
+                else tmp_n
+              end
+      data[:cpu][tmp_sym]                 = tmp_n   # Always in Hz
+    end
 
     ##################### MEMORY ############################
     data[:ram]                            = []

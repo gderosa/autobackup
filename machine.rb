@@ -155,9 +155,8 @@ class Machine
     ##################### DISKS #############################
     data[:disks]                          = [] 
     [
-      "node/node/node/node[@id='ide']/node/node[@id='disk']",
-      "node/node/node/node[@id='storage']/node[@id='disk']",
-      "node/node/node/node/node[@class='disk']"
+      "node/node/node/node/node/node[@id='disk']",
+      "node/node/node/node/node[@id='disk']"
     ].each do |search_pattern|                        
       doc.elements.each(search_pattern) do |disk|
         hash                              = {}

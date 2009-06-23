@@ -116,7 +116,7 @@ class Machine
 
     ##################### MEMORY ############################
     data[:ram]                            = []
-    doc.elements.each("node/node[@id='core']/node[@id='memory']/node") do |slot|
+    doc.elements.each("node/node[@id='core']/node[@class='memory']/node[@class='memory']") do |slot|
       hash                                = {}
       next if slot.elements["description"] =~ /empty/i or !slot.elements["size"]
       # detected an empty slot: skipped: TODO: report it with :empty=>true ? 
@@ -166,7 +166,8 @@ class Machine
     data[:disks]                          = [] 
     [
       "node/node/node/node/node/node[@id='disk']",
-      "node/node/node/node/node[@id='disk']"
+      "node/node/node/node/node[@id='disk']",
+      "node/node/node[@id='disk']"
     ].each do |search_pattern|                        
       doc.elements.each(search_pattern) do |disk|
         hash                              = {}

@@ -335,10 +335,35 @@ class Machine
         proc{|a,b| a[:serial] == b[:serial]} 
       ) 
 
-     
-
     return same_components
 
+  end
+
+  def compare_to_w_score(other_machine)
+    same_components = compare_to(other_machine)
+    score = 0.0
+    score += 3.0 if same_components[:same_serial] == :yes
+    score += 3.0 if same_components[:same_uuid] == :yes
+    score += 3.0 if same_components[:same_mobo] == :yes
+    score += 3.0 if same_components[:same_cpu] == :yes
+    score += (
+      same_components[:same_ram].to_f / @data[:ram].length.to_f +
+      same_components[:same_ram].to_f / other_machine.data[:ram].length.to_f 
+    ) # rightly, rise an exception if no ram
+    score += (
+      same_components[:same_net].to_f / @data[:net].length.to_f +
+      same_components[:same_net].to_f / other_machine.data[:net].length.to_f 
+    ) * 2.4 if @data[:net].length > 0 and other_machine.data[:net].length > 0
+      # is it ok to handle the case of no network interfaces? mmmm.....
+    score += (
+      same_components[:same_disks].to_f / @data[:disks].length.to_f +
+      same_components[:same_disks].to_f / other_machine.data[:disks].length.to_f
+    ) * 2.4 # rightly, rise an exception if no disks ;-)
+
+    return {
+      :same_components => same_components,
+      :score => score
+    }
   end
 
   private

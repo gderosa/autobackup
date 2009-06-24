@@ -23,8 +23,8 @@ class Autobackup
 
 		@current_machine_xmldata = `lshw -xml`
 		@current_machine = Machine::new(
-			:xmldata => @current_machine_xmldata,
-		  :id => UUID::new.generate )
+	   :xmldata => @current_machine_xmldata,
+		 :id => UUID::new.generate )
 
 		open_connection																	# sets @ssh, @sftp
 
@@ -33,7 +33,7 @@ class Autobackup
     @remote_machines.each do |remote_machine|
       puts "*******************************"
       puts remote_machine.id
-      pp @current_machine.compare_to(remote_machine)
+      pp @current_machine.compare_to_w_score(remote_machine)
     end
 
     #pp @remote_machines

@@ -24,6 +24,3 @@ class Array
   end
 end
 
-#a = [1, 2, 3, 4, 5, 6, 6, 6, 7]
-#b = [6, 6, 7, 12, 534, 645]
-#puts a.how_many_in_common_rel(b, proc{|x,y| ((x-y).abs <= 6 ) })

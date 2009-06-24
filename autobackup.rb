@@ -21,22 +21,26 @@ class Autobackup
   def run
     read_conf																				# sets @conf
 
-		#@current_machine_xmldata = `lshw -xml`
-		#@current_machine = Machine::new(
-		#	:xmldata => @current_machine_xmldata,
-		# :id => UUID::new.generate )
+		@current_machine_xmldata = `lshw -xml`
+		@current_machine = Machine::new(
+			:xmldata => @current_machine_xmldata,
+		  :id => UUID::new.generate )
 
 		open_connection																	# sets @ssh, @sftp
 
 		get_remote_machines	# retrieve Machine objects and fill @remote_machines
+
+    @remote_machines.each do |remote_machine|
+      puts "*******************************"
+      puts remote_machine.id
+      pp @current_machine.compare_to(remote_machine)
+    end
+
+    #pp @remote_machines
 		
 		# create_remote_dir
 
-		# gets # DEBUG
-		
 		close_connection
-
-		pp @remote_machines # DEBUG
 
   end
 

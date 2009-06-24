@@ -6,6 +6,8 @@ require 'uuid'
 require 'net/sftp'
 require 'rexml/document'
 
+require 'array'
+
 class Machine
 
   attr_reader :data, :id
@@ -45,6 +47,10 @@ class Machine
   end
 
   def self.parse_lshw_xml(xmldata)
+
+    # TODO: this method is overkill: change approach? stream parsing 
+    # instead of tree parsing?
+
     doc = REXML::Document::new xmldata
     root = doc.root
     elems = doc.root.elements
@@ -253,6 +259,88 @@ class Machine
 
   end
 
+  def compare_to(other_machine) 
+    same_components = {
+
+      # did not use boolean since we might need :partly or :maybe ;-)
+      :same_uuid    => :no,
+      :same_serial  => :no,
+      :same_mobo    => :no,
+      :same_cpu     => :no,
+
+      :same_ram     => 0,   
+      :same_disks   => 0, 
+      :same_net     => 0 
+    }
+    
+    # CORE
+    if @data[:uuid] == nil or other_machine.data[:uuid] == nil
+     same_components[:same_uuid] = :no
+    else
+      if @data[:uuid].casecmp( other_machine.data[:uuid] ) == 0
+        same_components[:same_uuid] = :yes
+      end
+    end
+    if @data[:serial] == nil or other_machine.data[:serial] == nil
+     same_components[:same_serial] = :no
+    else
+      if @data[:serial].casecmp( other_machine.data[:serial] ) == 0
+        same_components[:same_serial] = :yes
+      end
+    end
+
+    # MOBO
+    if not ( @data[:mobo][:product] and @data[:mobo][:vendor] )
+      same_components[:same_mobo] = :no
+    else
+      if @data[:mobo][:product].casecmp( other_machine.data[:mobo][:product] ) == 0 and @data[:mobo][:vendor].casecmp( other_machine.data[:mobo][:vendor] ) == 0
+        same_components[:same_mobo] = :yes
+      end
+    end
+    
+    # CPU 
+      # normalize strings:
+    tmp_str_product = @data[:cpu][:product].gsub(/\s/, "").downcase
+    tmp_str_product_other =
+      other_machine.data[:cpu][:product].gsub(/\s/, "").downcase 
+    tmp_str_vendor = @data[:cpu][:vendor].gsub(/\s/, "").downcase
+    tmp_str_vendor_other =
+      other_machine.data[:cpu][:vendor].gsub(/\s/, "").downcase 
+
+    if (@data[:cpu][:bits] == other_machine.data[:cpu][:bits] and
+        tmp_str_product == tmp_str_product_other and
+        tmp_str_vendor == tmp_str_vendor_other)
+      same_components[:same_cpu] = :yes
+    else
+      same_components[:same_cpu] = :no
+    end
+
+    # RAM
+      # TODO: handle different units (e.g. "bytes" and "kilobytes") (rare)
+      # calling Array.how_many_in_common_rel e creating a suitable method
+    same_components[:same_ram] = \
+      @data[:ram].how_many_in_common(other_machine.data[:ram])
+
+    # NET
+    same_components[:same_net] = \
+      @data[:net].how_many_in_common_rel(
+        other_machine.data[:net], 
+        proc{|a,b| a[:mac] == b[:mac]} 
+      ) 
+
+    # DISKS
+    same_components[:same_disks] = \
+      @data[:disks].how_many_in_common_rel(
+        other_machine.data[:disks], 
+        proc{|a,b| a[:serial] == b[:serial]} 
+      ) 
+
+     
+
+    return same_components
+
+  end
+
   private
 
   # Checks for bogus/meaningless informations such as 
@@ -260,10 +348,11 @@ class Machine
   # and return nil in that case
   def self.ckBogus(str) 
     [
+      /^\s*$/,
       /123456789/,
       /System Name/i, /System Manufacturer/i
     ].each do |re|
-      return "BOGUS:#{str}" if str =~ re
+      return nil if str =~ re
     end
     return str
   end

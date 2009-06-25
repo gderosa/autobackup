@@ -65,7 +65,7 @@ class Machine
     data                                  = {}
 
     ##################### CORE ##############################
-    data[:name]                           = ckBogus(root.attributes["id"])
+    data[:name]                           = root.attributes["id"]
     data[:description]                    = ckBogus(elems["description"].text)
     begin
       data[:product]                      = ckBogus(elems["product"].text)

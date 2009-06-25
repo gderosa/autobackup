@@ -25,17 +25,13 @@ class Autobackup
     read_conf																				# sets @conf
     parse_opts                                      # @conf['nocache']
 
-    puts "Detecting hardware... "
-		@current_machine_xmldata = `lshw -xml`
-		@current_machine = Machine::new(
-	   :xmldata => @current_machine_xmldata,
-		 :id => UUID::new.generate )
+    detect_hardware
 
 		open_connection																	# sets @ssh, @sftp
 
-		get_remote_machines	# retrieve Machine objects and fill @remote_machines
+		get_remote_machines	# retrieve Machine objects and fills @remote_machines
 
-    find_matches
+    find_matches                                    # fills @matches
 
 		# create_remote_dir
 
@@ -85,6 +81,14 @@ class Autobackup
     end
   end
 
+  def detect_hardware
+    puts "Detecting hardware... "
+		@current_machine_xmldata = `lshw -xml`
+		@current_machine = Machine::new(
+	   :xmldata => @current_machine_xmldata,
+		 :id => UUID::new.generate )
+  end
+
   def create_remote_dir
     dir = @conf['dir'] + '/' + @current_machine.id
 		@sftp.mkdir!(dir)
@@ -95,26 +99,6 @@ class Autobackup
 			f.puts Marshal::dump(@current_machine.data)
 		end
   end
-
-	def get_remote_machines_bak
-		basedir = @conf['dir']
-		@sftp.dir.foreach(basedir) do |entry|
-			name = entry.name
-		  unless name =~ /^\./  #exclude '.' and '..' and hidden directories
-				@remote_machines.push(
-					Machine.new(
-						:id => name, 
-						:remote => {
-							:sftp => @sftp,
-							:basedir => basedir,
-              :nocache => @conf['nocache']
-						}
-					)
-				)
-				puts "Retrieved: #{name}" # DEBUG | PROGRESS | VERBOSE
-			end
-		end
-	end
 
 	def get_remote_machines
 		basedir = @conf['dir']
@@ -134,7 +118,6 @@ class Autobackup
 			end
 		end
 	end
-
 
   def find_matches
     @remote_machines.each_value do |remote_machine|

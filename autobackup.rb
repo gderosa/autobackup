@@ -12,6 +12,7 @@ require 'net/sftp'
 require 'uuid'
 
 require 'machine'
+require 'partition'
 
 class Autobackup
 
@@ -19,6 +20,8 @@ class Autobackup
 		@conf_file = 'autobackup.conf'
 		@remote_machines = {}
     @matches = {}
+    @matches_good = {}
+    @current_partitions = []
 	end
 
   def run
@@ -26,7 +29,11 @@ class Autobackup
     read_conf																				# sets @conf
     parse_opts                                      # @conf['nocache']
 
-    detect_hardware
+    detect_hardware                                 # sets @current_machine
+
+    set_current_partitions                          # sets @current_partitions 
+
+    pp @current_partitions
 
 		open_connection																	# sets @ssh, @sftp
 
@@ -90,6 +97,22 @@ class Autobackup
 		 :id => UUID::new.generate )
   end
 
+  def set_current_partitions
+    # :logicalname has nothing to do with primary vs logical;
+    # it may be "/dev/sda1" or "/dev/sda7" etc. 
+    @current_machine.data[:disks].each do |disk|
+      disk[:volumes].each do |volume|
+        if volume[:logical_volumes] and volume[:logical_volumes].length > 0
+          volume[:logical_volumes].each do |lvolume|
+            @current_partitions << Partition.new(lvolume[:logicalname])
+          end
+        else
+          @current_partitions << Partition.new(volume[:logicalname])
+        end
+      end
+    end
+  end
+
   def create_remote_dir
     dir = @conf['dir'] + '/' + @current_machine.id
 		@sftp.mkdir!(dir)
@@ -121,12 +144,13 @@ class Autobackup
 	end
 
   def find_matches
-    best = 0.0 # best percent_match
     @remote_machines.each_value do |remote_machine|
       @matches[remote_machine.id] = \
         @current_machine.compare_to_w_score(remote_machine)
+      if @matches[remote_machine.id][:percent_match] > 0.1
+        @matches_good[remote_machine.id] = @matches[remote_machine.id]
+      end
     end
-    pp @matches
   end
 
 end

@@ -22,5 +22,6 @@ class Array
     end
     return n
   end
+
 end
 

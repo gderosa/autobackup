@@ -7,6 +7,7 @@ require 'net/sftp'
 require 'rexml/document'
 
 require 'array'
+require 'hash'
 
 class Machine
 
@@ -22,9 +23,15 @@ class Machine
       xmlfile = dir + '/' + "lshw.xml"
       datfile = dir + '/' + "machine.dat"
 
+      if [true, 1, "yes", "true"].include? args[:remote][:nocache] 
+        nocache = true
+      else
+        nocache = false
+      end
+
       # A caching mechanism to not parse XML every time...
       begin # Update cache (i.e. datfile) if it's out of date
-        if sftp.stat!(xmlfile).mtime > sftp.stat!(datfile).mtime
+        if (sftp.stat!(xmlfile).mtime > sftp.stat!(datfile).mtime) or nocache 
           @data = Machine::parse_lshw_xml(sftp.download!(xmlfile))
           sftp.file.open(datfile, "w") do |f|
             f.puts Marshal::dump(@data)
@@ -263,38 +270,38 @@ class Machine
     same_components = {
 
       # did not use boolean since we might need :partly or :maybe ;-)
-      :same_uuid    => :no,
-      :same_serial  => :no,
-      :same_mobo    => :no,
-      :same_cpu     => :no,
+      :uuid    => :no,
+      :serial  => :no,
+      :mobo    => :no,
+      :cpu     => :no,
 
-      :same_ram     => 0,   
-      :same_disks   => 0, 
-      :same_net     => 0 
+      :ram     => 0,   
+      :disks   => 0, 
+      :net     => 0 
     }
     
     # CORE
     if @data[:uuid] == nil or other_machine.data[:uuid] == nil
-     same_components[:same_uuid] = :no
+     same_components[:uuid] = :no
     else
       if @data[:uuid].casecmp( other_machine.data[:uuid] ) == 0
-        same_components[:same_uuid] = :yes
+        same_components[:uuid] = :yes
       end
     end
     if @data[:serial] == nil or other_machine.data[:serial] == nil
-     same_components[:same_serial] = :no
+     same_components[:serial] = :no
     else
       if @data[:serial].casecmp( other_machine.data[:serial] ) == 0
-        same_components[:same_serial] = :yes
+        same_components[:serial] = :yes
       end
     end
 
     # MOBO
     if not ( @data[:mobo][:product] and @data[:mobo][:vendor] )
-      same_components[:same_mobo] = :no
+      same_components[:mobo] = :no
     else
       if @data[:mobo][:product].casecmp( other_machine.data[:mobo][:product] ) == 0 and @data[:mobo][:vendor].casecmp( other_machine.data[:mobo][:vendor] ) == 0
-        same_components[:same_mobo] = :yes
+        same_components[:mobo] = :yes
       end
     end
     
@@ -310,26 +317,26 @@ class Machine
     if (@data[:cpu][:bits] == other_machine.data[:cpu][:bits] and
         tmp_str_product == tmp_str_product_other and
         tmp_str_vendor == tmp_str_vendor_other)
-      same_components[:same_cpu] = :yes
+      same_components[:cpu] = :yes
     else
-      same_components[:same_cpu] = :no
+      same_components[:cpu] = :no
     end
 
     # RAM
       # TODO: handle different units (e.g. "bytes" and "kilobytes") (rare)
-      # calling Array.how_many_in_common_rel e creating a suitable method
-    same_components[:same_ram] = \
+      # calling Array.how_many_in_common_rel and creating a suitable method
+    same_components[:ram] = \
       @data[:ram].how_many_in_common(other_machine.data[:ram])
 
     # NET
-    same_components[:same_net] = \
+    same_components[:net] = \
       @data[:net].how_many_in_common_rel(
         other_machine.data[:net], 
         proc{|a,b| a[:mac] == b[:mac]} 
       ) 
 
     # DISKS
-    same_components[:same_disks] = \
+    same_components[:disks] = \
       @data[:disks].how_many_in_common_rel(
         other_machine.data[:disks], 
         proc{|a,b| a[:serial] == b[:serial]} 
@@ -340,29 +347,39 @@ class Machine
   end
 
   def compare_to_w_score(other_machine)
+    score_conf = {
+      :serial => 3.0,
+      :uuid => 3.0,
+      :mobo => 3.0,
+      :cpu => 3.0,
+      :ram => 2,
+      :net => 4.8,
+      :disks => 4.8
+    }
+    score_max = score_conf.sum
+
     same_components = compare_to(other_machine)
+
     score = 0.0
-    score += 3.0 if same_components[:same_serial] == :yes
-    score += 3.0 if same_components[:same_uuid] == :yes
-    score += 3.0 if same_components[:same_mobo] == :yes
-    score += 3.0 if same_components[:same_cpu] == :yes
-    score += (
-      same_components[:same_ram].to_f / @data[:ram].length.to_f +
-      same_components[:same_ram].to_f / other_machine.data[:ram].length.to_f 
-    ) # rightly, rise an exception if no ram
-    score += (
-      same_components[:same_net].to_f / @data[:net].length.to_f +
-      same_components[:same_net].to_f / other_machine.data[:net].length.to_f 
-    ) * 2.4 if @data[:net].length > 0 and other_machine.data[:net].length > 0
-      # is it ok to handle the case of no network interfaces? mmmm.....
-    score += (
-      same_components[:same_disks].to_f / @data[:disks].length.to_f +
-      same_components[:same_disks].to_f / other_machine.data[:disks].length.to_f
-    ) * 2.4 # rightly, rise an exception if no disks ;-)
+
+    [:serial, :uuid, :mobo, :cpu].each do |component| 
+      score += score_conf[component] if same_components[component] == :yes
+    end
+
+    [:ram, :net, :disks].each do |component|
+      score += (
+        same_components[component].to_f / @data[component].length.to_f +
+        same_components[component].to_f / other_machine.data[component].length.to_f 
+      ) * score_conf[component] / 2 
+    end
+
+    percent = (score/score_max)*100
 
     return {
       :same_components => same_components,
-      :score => score
+      #:score => score,
+      #:max_score => score_conf.sum, 
+      :percent_match => percent
     }
   end
 

@@ -1,3 +1,5 @@
+#!/usr/bin/env ruby
+
 # Author::    Guido De Rosa  (mailto:job@guidoderosa.net)
 # Copyright:: Copyright (C) 2009 Guido De Rosa
 # License::   General Public License, version 2
@@ -15,12 +17,15 @@ class Autobackup
 
 	def initialize
 		@conf_file = 'autobackup.conf'
-		@remote_machines = []
+		@remote_machines = {}
 	end
 
   def run
-    read_conf																				# sets @conf
 
+    read_conf																				# sets @conf
+    parse_opts                                      # @conf['nocache']
+
+    puts "Detecting hardware... "
 		@current_machine_xmldata = `lshw -xml`
 		@current_machine = Machine::new(
 	   :xmldata => @current_machine_xmldata,
@@ -30,14 +35,8 @@ class Autobackup
 
 		get_remote_machines	# retrieve Machine objects and fill @remote_machines
 
-    @remote_machines.each do |remote_machine|
-      puts "*******************************"
-      puts remote_machine.id
-      pp @current_machine.compare_to_w_score(remote_machine)
-    end
+    find_matches
 
-    #pp @remote_machines
-		
 		# create_remote_dir
 
 		close_connection
@@ -47,13 +46,19 @@ class Autobackup
   private
 
 	def open_connection
-		@ssh = Net::SSH.start(
-	    @conf['server'],
-	    @conf['user'],
-	    :password => @conf['passwd']
-		)
-		@sftp = Net::SFTP::Session.new(@ssh)
-		@sftp.loop { @sftp.opening? } # wait until ready
+    puts "Contacting the server..."
+    begin
+      @ssh = Net::SSH.start(
+        @conf['server'],
+        @conf['user'],
+        :password => @conf['passwd']
+      )
+      @sftp = Net::SFTP::Session.new(@ssh)
+      @sftp.loop { @sftp.opening? } # wait until ready
+    rescue
+      STDERR.puts "ERROR: #{$!}"
+      exit 2 
+    end
 	end
 
 	def close_connection
@@ -71,6 +76,15 @@ class Autobackup
     end
   end
 
+  def parse_opts
+    # Do Repeat Yourself ;-P
+    ARGV.each do |arg|
+      if arg == "--nocache"
+        @conf['nocache'] = 'true' # @conf is made up of strings
+      end
+    end
+  end
+
   def create_remote_dir
     dir = @conf['dir'] + '/' + @current_machine.id
 		@sftp.mkdir!(dir)
@@ -82,7 +96,7 @@ class Autobackup
 		end
   end
 
-	def get_remote_machines
+	def get_remote_machines_bak
 		basedir = @conf['dir']
 		@sftp.dir.foreach(basedir) do |entry|
 			name = entry.name
@@ -92,7 +106,8 @@ class Autobackup
 						:id => name, 
 						:remote => {
 							:sftp => @sftp,
-							:basedir => basedir
+							:basedir => basedir,
+              :nocache => @conf['nocache']
 						}
 					)
 				)
@@ -100,6 +115,35 @@ class Autobackup
 			end
 		end
 	end
+
+	def get_remote_machines
+		basedir = @conf['dir']
+		@sftp.dir.foreach(basedir) do |entry|
+			name = entry.name
+		  unless name =~ /^\./  #exclude '.' and '..' and hidden directories
+				@remote_machines[name] = \
+					Machine.new(
+						:id => name, 
+						:remote => {
+							:sftp => @sftp,
+							:basedir => basedir,
+              :nocache => @conf['nocache']
+						}
+					)
+				puts "Retrieved: #{name}" # DEBUG | PROGRESS | VERBOSE
+			end
+		end
+	end
+
+
+  def find_matches
+    @remote_machines.each_value do |remote_machine|
+      @matches = {}
+      @matches[remote_machine.id] = \
+        @current_machine.compare_to_w_score(remote_machine)
+      pp @matches
+    end
+  end
 
 end
 

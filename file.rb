@@ -1,16 +1,15 @@
 class File
-  
-  # just like readlink -f from the shell
-  def File.readlink!(path)
+                                          
+  def File.readlink!(path)                # just like /bin/readlink -f 
     path = File.expand_path(path)
     dirname = File.dirname(path)
     readlink = File.readlink(path)
-    if not readlink =~ /^\//
-      readlink = dirname + '/'+ readlink
+    if not readlink =~ /^\//              # it's a relative path
+      readlink = dirname + '/'+ readlink  # make it absolute
     end
-    readlink = File.expand_path(readlink) 
-    if File.symlink?(readlink)
-      return File.readlink!(readlink) 
+    readlink = File.expand_path(readlink) # eliminate this/../../that
+    if File.symlink?(readlink)           
+      return File.readlink!(readlink)     # recursively follow symlinks
     else
       return readlink
     end
@@ -18,4 +17,4 @@ class File
 
 end
 
-puts File.readlink!("/dev/disk/by-id/ata-FUJITSU_MHV2080BH_PL_NW9ZT6C37VVJ")
+

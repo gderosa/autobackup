@@ -32,9 +32,7 @@ class Autobackup
     detect_hardware                                 # sets @current_machine
 
     set_current_partitions                          # sets @current_partitions 
-
     pp @current_partitions
-
 		open_connection																	# sets @ssh, @sftp
 
 		get_remote_machines	# retrieve Machine objects and fills @remote_machines
@@ -98,17 +96,58 @@ class Autobackup
   end
 
   def set_current_partitions
+
+    mounts = {}
+    File.open("/proc/mounts", "r") do |f|
+      while line = f.gets
+        if line =~ /^(\S+)\s+(\S+)\s+(\S+)/ 
+          dev, mountpoint, fstype = [$1, $2, $3]
+          if File.exist?(dev)
+            if File.symlink?(dev)
+              # TODO: a File::readlink! analogous to readlink -f on the shell
+              readlink = File.readlink(dev)
+              if readlink =~ /^\//
+                dev = readlink
+              else
+                dev = File.dirname(dev) + '/' + readlink
+                dev = File.expand_path(dev) 
+              end
+            end
+            mounts[dev] = {:mountpoint=>mountpoint, :fstype=>fstype} 
+          end
+        end
+      end
+    end
+
+    devnames = []
     # :logicalname has nothing to do with primary vs logical;
     # it may be "/dev/sda1" or "/dev/sda7" etc. 
     @current_machine.data[:disks].each do |disk|
       disk[:volumes].each do |volume|
         if volume[:logical_volumes] and volume[:logical_volumes].length > 0
           volume[:logical_volumes].each do |lvolume|
-            @current_partitions << Partition.new(lvolume[:logicalname])
+            devnames << lvolume[:logicalname]
           end
         else
-          @current_partitions << Partition.new(volume[:logicalname])
+          devnames << volume[:logicalname]
         end
+      end
+    end
+    devnames.sort!
+
+    devnames.each do |dev|
+      if mounts[dev]
+        @current_partitions << Partition.new(
+          :dev => dev,
+          :mountpoint => mounts[dev][:mountpoint],
+          :fstype => mounts[dev][:fstype]
+        )
+      else
+        @current_partitions << Partition.new(
+          :dev => dev,
+          :mountpoint => nil,
+          :fstype => nil
+        )
       end
     end
   end

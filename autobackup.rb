@@ -104,16 +104,16 @@ class Autobackup
       while line = f.gets
         if line =~ /^(\S+)\s+(\S+)\s+(\S+)/ 
           dev, mountpoint, fstype = [$1, $2, $3]
-
+      
           # detect NTFS
-          if fstype =~ /fuse/ # tipically fstype = "fuseblk" in /proc/mounts
+          if fstype == "fuseblk" 
             if system("ntfs-3g.probe --readonly #{dev}") 
               fstype = "ntfs"
             else
               fstype = "fuse:unknown"
             end
           end
-
+    
           if File.exist?(dev)
             if File.symlink?(dev)
               # TODO: a File::readlink! analogous to readlink -f on the shell

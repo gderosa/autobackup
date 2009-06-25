@@ -12,9 +12,12 @@ class Partition
   end
 
   def getfstype
-  end
-
-  def getmount
+    if mounted?
+      # do nothing
+    else
+      # do nothing
+    end
+    nil
   end
 
   def mounted?

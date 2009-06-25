@@ -31,8 +31,10 @@ class Autobackup
 
     detect_hardware                                 # sets @current_machine
 
-    set_current_partitions                          # sets @current_partitions 
+    set_current_partitions # sets @current_partitions and reads /proc/mounts
+
     pp @current_partitions
+
 		open_connection																	# sets @ssh, @sftp
 
 		get_remote_machines	# retrieve Machine objects and fills @remote_machines
@@ -102,6 +104,16 @@ class Autobackup
       while line = f.gets
         if line =~ /^(\S+)\s+(\S+)\s+(\S+)/ 
           dev, mountpoint, fstype = [$1, $2, $3]
+
+          # detect NTFS
+          if fstype =~ /fuse/ # tipically fstype = "fuseblk" in /proc/mounts
+            if system("ntfs-3g.probe --readonly #{dev}") 
+              fstype = "ntfs"
+            else
+              fstype = "fuse:unknown"
+            end
+          end
+
           if File.exist?(dev)
             if File.symlink?(dev)
               # TODO: a File::readlink! analogous to readlink -f on the shell

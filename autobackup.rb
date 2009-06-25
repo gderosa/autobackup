@@ -18,6 +18,7 @@ class Autobackup
 	def initialize
 		@conf_file = 'autobackup.conf'
 		@remote_machines = {}
+    @matches = {}
 	end
 
   def run
@@ -120,12 +121,12 @@ class Autobackup
 	end
 
   def find_matches
+    best = 0.0 # best percent_match
     @remote_machines.each_value do |remote_machine|
-      @matches = {}
       @matches[remote_machine.id] = \
         @current_machine.compare_to_w_score(remote_machine)
-      pp @matches
     end
+    pp @matches
   end
 
 end

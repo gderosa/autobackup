@@ -132,8 +132,14 @@ class Autobackup
     end
 
     devnames = []
+    #
     # :logicalname has nothing to do with primary vs logical;
     # it may be "/dev/sda1" or "/dev/sda7" etc. 
+    #
+    # TODO: LUKS devices in /dev/mapper/ are not supported since
+    # lshw does not detect them (they are not hardware at all!). Moreover,
+    # probably you don't want to automatically store them decrypted elsewhere!
+    #
     @current_machine.data[:disks].each do |disk|
       disk[:volumes].each do |volume|
         if volume[:logical_volumes] and volume[:logical_volumes].length > 0

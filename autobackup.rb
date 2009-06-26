@@ -41,9 +41,9 @@ class Autobackup
 
     # create_remote_dir
 
-    close_connection
+    ui
 
-    pp @current_disks
+    close_connection
 
   end
 
@@ -208,6 +208,10 @@ class Autobackup
         @machine_matches[remote_machine.id] = match
       end
     end
+  end
+
+  def ui
+    # do nothing
   end
 
 end

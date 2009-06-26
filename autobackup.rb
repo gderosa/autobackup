@@ -12,7 +12,7 @@ require 'net/sftp'
 require 'uuid'
 
 require 'machine'
-require 'partition'
+require 'disk'
 require 'file'
 
 class Autobackup
@@ -42,6 +42,8 @@ class Autobackup
     # create_remote_dir
 
     close_connection
+
+    pp @current_disks
 
   end
 
@@ -159,7 +161,7 @@ class Autobackup
       end
     end
 
-    pp disks_tmp_ary
+    disks_tmp_ary.each {|d| @current_disks << Disk.new(d)}
 
     puts "done."
   end

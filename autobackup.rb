@@ -20,7 +20,7 @@ class Autobackup
   def initialize
     @conf_file = 'autobackup.conf'
     @remote_machines = {}
-    @matches = {}
+    @machine_matches = {}
     @current_disks = []
   end
 
@@ -37,7 +37,7 @@ class Autobackup
 
     get_remote_machines  # retrieve Machine objects and fills @remote_machines
 
-    find_matches                                    # fills @matches
+    find_machine_matches                             # fills @machine_matches
 
     # create_remote_dir
 
@@ -198,12 +198,12 @@ class Autobackup
     puts " done."
   end
 
-  def find_matches
+  def find_machine_matches
     min_percent_match = 0.2
     @remote_machines.each_value do |remote_machine|
       match = @current_machine.compare_to_w_score(remote_machine)
       if match[:percent_match] > min_percent_match
-        @matches[remote_machine.id] = match
+        @machine_matches[remote_machine.id] = match
       end
     end
   end

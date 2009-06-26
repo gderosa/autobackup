@@ -8,16 +8,6 @@ class Partition
     @dev = args[:dev]
     @mountpoint = args[:mountpoint]
     @fstype = args[:fstype]
-    @fstype = getfstype if not @fstype
-  end
-
-  def getfstype
-    if mounted?
-      # do nothing
-    else
-      # do nothing
-    end
-    nil
   end
 
   def mounted?

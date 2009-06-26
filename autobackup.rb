@@ -21,9 +21,7 @@ class Autobackup
 		@conf_file = 'autobackup.conf'
 		@remote_machines = {}
     @matches = {}
-    @matches_good = {}
-    @current_partitions = {}
-    @current_partitions_by_id = {}
+    @current_partitions = []
 	end
 
   def run
@@ -33,10 +31,7 @@ class Autobackup
 
     detect_hardware                                 # sets @current_machine
 
-    set_current_partitions                          #@current_partitions(_by_id)
-
-    pp @current_partitions
-    pp @current_partitions_by_id
+    set_current_partitions                          # sets @current_partitions 
 
 		open_connection																	# sets @ssh, @sftp
 
@@ -48,12 +43,15 @@ class Autobackup
 
 		close_connection
 
+    pp @current_partitions
+
   end
 
   private
 
 	def open_connection
-    puts "Contacting the server..."
+    print "Contacting the server... "
+    $stdout.flush
     begin
       @ssh = Net::SSH.start(
         @conf['server'],
@@ -66,6 +64,7 @@ class Autobackup
       STDERR.puts "ERROR: #{$!}"
       exit 2 
     end
+    puts "done."
 	end
 
 	def close_connection
@@ -93,14 +92,18 @@ class Autobackup
   end
 
   def detect_hardware
-    puts "Detecting hardware... "
-		@current_machine_xmldata = `lshw -xml`
+    print "Detecting hardware... "
+    $stdout.flush
+		@current_machine_xmldata = `lshw -quiet -xml`
+    puts "done."
 		@current_machine = Machine::new(
 	   :xmldata => @current_machine_xmldata,
 		 :id => UUID::new.generate )
   end
 
   def set_current_partitions
+    print "Finding disk(s) partitions... "
+    $stdout.flush
     disk = nil
     IO.popen("parted -lms").each_line do |line|
       if line =~ /^(\/dev\/[^:]+):(.*):(.*):(.*):(.*):(.*):(.*);/ 
@@ -113,21 +116,18 @@ class Autobackup
       if line =~ /^(\d+):(.*):(.*):(.*):(.+):(.*):(.*);/ and disk
         dev = disk + $1
         fstype = $5
-        @current_partitions[dev] = {:fstype=>fstype}  
+        @current_partitions << {:fstype=>fstype, :dev=>dev}   
       end
     end
     kernel_disk_id_basedir = '/dev/disk/by-id'
     Dir.foreach(kernel_disk_id_basedir) do |item|
       next if item =~ /^\./ # exclude '.' and '..' (and hidden entries) 
       dev = File.readlink!(kernel_disk_id_basedir + '/' + item)
-      if @current_partitions[dev]
-        @current_partitions[dev][:kernel_id] = item
-        @current_partitions_by_id[item] = {
-            :dev => dev,
-            :fstype => @current_partitions[dev][:fstype] 
-        }
+      if p = @current_partitions.detect {|x| x[:dev] == dev} 
+        p[:kernel_id] = item
       end
     end
+    puts "done."
   end
 
   def create_remote_dir
@@ -142,6 +142,8 @@ class Autobackup
   end
 
 	def get_remote_machines
+    print "Retrieving machines remote data."
+    $stdout.flush
 		basedir = @conf['dir']
 		@sftp.dir.foreach(basedir) do |entry|
 			name = entry.name
@@ -155,17 +157,19 @@ class Autobackup
               :nocache => @conf['nocache']
 						}
 					)
-				puts "Retrieved: #{name}" # DEBUG | PROGRESS | VERBOSE
+				print "."
+        $stdout.flush
 			end
 		end
+    puts " done."
 	end
 
   def find_matches
+    min_percent_match = 0.2
     @remote_machines.each_value do |remote_machine|
-      @matches[remote_machine.id] = \
-        @current_machine.compare_to_w_score(remote_machine)
-      if @matches[remote_machine.id][:percent_match] > 0.1
-        @matches_good[remote_machine.id] = @matches[remote_machine.id]
+      match = @current_machine.compare_to_w_score(remote_machine)
+      if match[:percent_match] > min_percent_match
+        @matches[remote_machine.id] = match
       end
     end
   end

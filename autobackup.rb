@@ -104,6 +104,7 @@ class Autobackup
   def set_current_partitions
     print "Finding disk(s) partitions... "
     $stdout.flush
+    partitions_tmp_ary = []
     disk = nil
     IO.popen("parted -lms").each_line do |line|
       if line =~ /^(\/dev\/[^:]+):(.*):(.*):(.*):(.*):(.*):(.*);/ 
@@ -116,16 +117,19 @@ class Autobackup
       if line =~ /^(\d+):(.*):(.*):(.*):(.+):(.*):(.*);/ and disk
         dev = disk + $1
         fstype = $5
-        @current_partitions << {:fstype=>fstype, :dev=>dev}   
+        partitions_tmp_ary << {:fstype=>fstype, :dev=>dev}
       end
     end
     kernel_disk_id_basedir = '/dev/disk/by-id'
     Dir.foreach(kernel_disk_id_basedir) do |item|
       next if item =~ /^\./ # exclude '.' and '..' (and hidden entries) 
       dev = File.readlink!(kernel_disk_id_basedir + '/' + item)
-      if p = @current_partitions.detect {|x| x[:dev] == dev} 
+      if p = partitions_tmp_ary.detect {|x| x[:dev] == dev} 
         p[:kernel_id] = item
       end
+    end
+    partitions_tmp_ary.each do |p|
+      @current_partitions << Partition.new(p) 
     end
     puts "done."
   end

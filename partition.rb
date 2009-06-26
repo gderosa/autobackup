@@ -1,13 +1,14 @@
 class Partition
 
-  attr_reader :dev, :fstype, :mountpoint
+  attr_reader :dev, :fstype, :kernel_id
 
   Mount_base = "/mnt/target/"
   
   def initialize(args) 
     @dev = args[:dev]
-    @mountpoint = args[:mountpoint]
+    #@mountpoint = args[:mountpoint]
     @fstype = args[:fstype]
+    @kernel_id = args[:kernel_id]
   end
 
   def mounted?

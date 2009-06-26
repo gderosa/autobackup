@@ -17,31 +17,31 @@ require 'file'
 
 class Autobackup
 
-	def initialize
-		@conf_file = 'autobackup.conf'
-		@remote_machines = {}
+  def initialize
+    @conf_file = 'autobackup.conf'
+    @remote_machines = {}
     @matches = {}
     @current_partitions = []
-	end
+  end
 
   def run
 
-    read_conf																				# sets @conf
+    read_conf                                        # sets @conf
     parse_opts                                      # @conf['nocache']
 
     detect_hardware                                 # sets @current_machine
 
     set_current_partitions                          # sets @current_partitions 
 
-		open_connection																	# sets @ssh, @sftp
+    open_connection                                  # sets @ssh, @sftp
 
-		get_remote_machines	# retrieve Machine objects and fills @remote_machines
+    get_remote_machines  # retrieve Machine objects and fills @remote_machines
 
     find_matches                                    # fills @matches
 
-		# create_remote_dir
+    # create_remote_dir
 
-		close_connection
+    close_connection
 
     pp @current_partitions
 
@@ -49,7 +49,7 @@ class Autobackup
 
   private
 
-	def open_connection
+  def open_connection
     print "Contacting the server... "
     $stdout.flush
     begin
@@ -65,12 +65,12 @@ class Autobackup
       exit 2 
     end
     puts "done."
-	end
+  end
 
-	def close_connection
-		@sftp.close_channel
-		@ssh.close
-	end
+  def close_connection
+    @sftp.close_channel
+    @ssh.close
+  end
   
   def read_conf
     @conf = {}
@@ -94,11 +94,11 @@ class Autobackup
   def detect_hardware
     print "Detecting hardware... "
     $stdout.flush
-		@current_machine_xmldata = `lshw -quiet -xml`
+    @current_machine_xmldata = `lshw -quiet -xml`
     puts "done."
-		@current_machine = Machine::new(
-	   :xmldata => @current_machine_xmldata,
-		 :id => UUID::new.generate )
+    @current_machine = Machine::new(
+     :xmldata => @current_machine_xmldata,
+     :id => UUID::new.generate )
   end
 
   def set_current_partitions
@@ -136,37 +136,37 @@ class Autobackup
 
   def create_remote_dir
     dir = @conf['dir'] + '/' + @current_machine.id
-		@sftp.mkdir!(dir)
+    @sftp.mkdir!(dir)
     @sftp.file.open(dir + "/lshw.xml", "w") do |f|
       f.puts @current_machine_xmldata
-    end	    
-		@sftp.file.open(dir + "/machine.dat", "w") do |f|
-			f.puts Marshal::dump(@current_machine.data)
-		end
+    end      
+    @sftp.file.open(dir + "/machine.dat", "w") do |f|
+      f.puts Marshal::dump(@current_machine.data)
+    end
   end
 
-	def get_remote_machines
+  def get_remote_machines
     print "Retrieving machines remote data."
     $stdout.flush
-		basedir = @conf['dir']
-		@sftp.dir.foreach(basedir) do |entry|
-			name = entry.name
-		  unless name =~ /^\./  #exclude '.' and '..' and hidden directories
-				@remote_machines[name] = \
-					Machine.new(
-						:id => name, 
-						:remote => {
-							:sftp => @sftp,
-							:basedir => basedir,
+    basedir = @conf['dir']
+    @sftp.dir.foreach(basedir) do |entry|
+      name = entry.name
+      unless name =~ /^\./  #exclude '.' and '..' and hidden directories
+        @remote_machines[name] = \
+          Machine.new(
+            :id => name, 
+            :remote => {
+              :sftp => @sftp,
+              :basedir => basedir,
               :nocache => @conf['nocache']
-						}
-					)
-				print "."
+            }
+          )
+        print "."
         $stdout.flush
-			end
-		end
+      end
+    end
     puts " done."
-	end
+  end
 
   def find_matches
     min_percent_match = 0.2

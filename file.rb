@@ -1,6 +1,10 @@
+
+# While File.readlink behaves like the analogous shell command,
+# File.readlink! behaves like 'readlink -f'
+
 class File
                                           
-  def File.readlink!(path)                # just like /bin/readlink -f 
+  def File.readlink!(path)                
     path = File.expand_path(path)
     dirname = File.dirname(path)
     readlink = File.readlink(path)

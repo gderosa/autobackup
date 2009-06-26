@@ -21,19 +21,19 @@ class Autobackup
     @conf_file = 'autobackup.conf'
     @remote_machines = {}
     @matches = {}
-    @current_partitions = []
+    @current_disks = []
   end
 
   def run
 
-    read_conf                                        # sets @conf
+    read_conf                                       # sets @conf
     parse_opts                                      # @conf['nocache']
 
     detect_hardware                                 # sets @current_machine
 
-    set_current_partitions                          # sets @current_partitions 
+    set_current_disks                               # sets @current_disks 
 
-    open_connection                                  # sets @ssh, @sftp
+    open_connection                                 # sets @ssh, @sftp
 
     get_remote_machines  # retrieve Machine objects and fills @remote_machines
 
@@ -42,8 +42,6 @@ class Autobackup
     # create_remote_dir
 
     close_connection
-
-    pp @current_partitions
 
   end
 
@@ -101,36 +99,68 @@ class Autobackup
      :id => UUID::new.generate )
   end
 
-  def set_current_partitions
-    print "Finding disk(s) partitions... "
+  def set_current_disks
+    print "Finding disk(s) and partitions... "
     $stdout.flush
-    partitions_tmp_ary = []
-    disk = nil
-    IO.popen("parted -lms").each_line do |line|
+    disks_tmp_ary = []
+    disk_tmp_hash = {:dev=>nil, :volumes=>[], :kernel_id=>nil, :size=>0}
+    disk_tmp_dev = nil
+    pipe = IO.popen("parted -m", "r+")
+    pipe.puts "unit b"
+    pipe.puts "print all"
+    pipe.puts "quit"
+    pipe.close_write
+    lines = pipe.readlines
+    lines.each do |line|
       if line =~ /^(\/dev\/[^:]+):(.*):(.*):(.*):(.*):(.*):(.*);/ 
         if $3 == "dm"
-          disk = nil  # esclude device mapper
+          disk_tmp_dev = nil  # esclude device mapper
         else
-          disk = $1
+          disk_tmp_dev = $1 # this block device is a whole disk, not a partition
+          disk_tmp_hash = {
+            :dev => disk_tmp_dev,
+            :size => $2,
+            :volumes => [],
+            :kernel_id => nil
+          }
+          disks_tmp_ary << disk_tmp_hash
         end
       end
-      if line =~ /^(\d+):(.*):(.*):(.*):(.+):(.*):(.*);/ and disk
-        dev = disk + $1
+      if line =~ /^(\d+):(.*):(.*):(.*):(.+):(.*):(.*);/ and disk_tmp_dev
+        pn  = $1
+        dev = disk_tmp_dev + pn
         fstype = $5
-        partitions_tmp_ary << {:fstype=>fstype, :dev=>dev}
+        start = $2
+        end_ = $3 # avoid conflict with a Ruby keyword ;-)
+        size = $4
+        disk_tmp_hash[:volumes] << {
+          :kernel_id=>nil,
+          :fstype=>fstype, 
+          :dev=>dev, 
+          :pn=>pn,
+          :start=>start,
+          :end=>end_,
+          :size=>size
+        }
       end
     end
+    pipe.close_read
     kernel_disk_id_basedir = '/dev/disk/by-id'
-    Dir.foreach(kernel_disk_id_basedir) do |item|
-      next if item =~ /^\./ # exclude '.' and '..' (and hidden entries) 
-      dev = File.readlink!(kernel_disk_id_basedir + '/' + item)
-      if p = partitions_tmp_ary.detect {|x| x[:dev] == dev} 
-        p[:kernel_id] = item
+    dev_to_kernel_id = {}
+    Dir.foreach(kernel_disk_id_basedir) do |kernel_id|
+      next if kernel_id =~ /^\./ # exclude '.' and '..' (and hidden entries) 
+      dev = File.readlink!(kernel_disk_id_basedir + '/' + kernel_id)
+      dev_to_kernel_id[dev] = kernel_id
+    end
+    disks_tmp_ary.each do |d|
+      d[:kernel_id] = dev_to_kernel_id[d[:dev]] 
+      d[:volumes].each do |vol|
+        vol[:kernel_id] =  dev_to_kernel_id[vol[:dev]]
       end
     end
-    partitions_tmp_ary.each do |p|
-      @current_partitions << Partition.new(p) 
-    end
+
+    pp disks_tmp_ary
+
     puts "done."
   end
 

@@ -214,7 +214,7 @@ class Autobackup
 
   def find_machine_matches
     @machine_matches = []
-    min_percent_match = 0.2
+    min_percent_match = 0.2 # first filter
     @remote_machines.each_value do |remote_machine|
       match = @current_machine.compare_to_w_score(remote_machine)
       if match[:percent_match] > min_percent_match
@@ -222,7 +222,9 @@ class Autobackup
         @machine_matches << match
       end
     end
-    @machine_matches.sort! {|x,y| x[:percent_match]<=>y[:percent_match]} 
+    @machine_matches = @machine_matches.sort_by {|m| -m[:percent_match]}  
+    min_percent_match = @machine_matches[0][:percent_match]*0.5 # 2nd filter
+    @machine_matches.reject! {|m| m[:percent_match]<min_percent_match} 
     pp @machine_matches
   end
 

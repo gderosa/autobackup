@@ -17,6 +17,8 @@ require 'file'
 
 class Autobackup
 
+  Lshw_xml_cache = "/tmp/lshw.xml"
+
   def initialize
     @conf_file = 'autobackup.conf'
     @remote_machines = {}
@@ -31,7 +33,7 @@ class Autobackup
 
     detect_hardware                                 # sets @current_machine
 
-    set_current_disks                               # sets @current_disks 
+    detect_disks                                    # sets @current_disks 
 
     open_connection                                 # sets @ssh, @sftp
 
@@ -78,7 +80,10 @@ class Autobackup
       line = line.strip!
       line = line.sub(/#.*$/,"")
       keyval = line.scan(/[^ =]+/)
-      @conf[keyval[0]] = keyval[1] if (keyval[0])
+      key, val = keyval
+      val = false if ["false", "no"].include? val
+      val = true if ["true", "yes"].include? val
+      @conf[key] = val if key
     end
   end
 
@@ -94,14 +99,21 @@ class Autobackup
   def detect_hardware
     print "Detecting hardware... "
     $stdout.flush
-    @current_machine_xmldata = `lshw -quiet -xml`
-    puts "done."
+    if @conf['nocache'] or (not File.readable?(Lshw_xml_cache))
+      @current_machine_xmldata = `lshw -quiet -xml`
+      f = File.open(Lshw_xml_cache, "w")
+      f.print @current_machine_xmldata
+      f.close
+    else
+      @current_machine_xmldata = File.read(Lshw_xml_cache)
+    end
     @current_machine = Machine::new(
      :xmldata => @current_machine_xmldata,
      :id => UUID::new.generate )
+    puts "done."
   end
 
-  def set_current_disks
+  def detect_disks
     print "Finding disk(s) and partitions... "
     $stdout.flush
     disks_tmp_ary = []
@@ -211,10 +223,32 @@ class Autobackup
   end
 
   def ui
-    # do nothing
+    puts
+    puts "1. Backup"
+    puts "2. Restore"
+    puts "3. Exit"
+    begin
+      choice = $stdin.gets.strip
+    rescue
+      exit
+    end
+    case choice 
+    when '1'
+      ui_backup
+    when '2'
+      puts "Not implemented yet"
+      exit
+    when '3'
+      exit
+    else
+      ui
+    end
+  end
+
+  def ui_backup
   end
 
 end
 
-Autobackup::new.run
+Autobackup.new.run
 

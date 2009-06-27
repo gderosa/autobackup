@@ -91,7 +91,7 @@ class Autobackup
     # Do Repeat Yourself ;-P
     ARGV.each do |arg|
       if arg == "--nocache"
-        @conf['nocache'] = 'true' # @conf is made up of strings
+        @conf['nocache'] = true 
       end
     end
   end

@@ -17,7 +17,10 @@ require 'file'
 
 class Autobackup
 
-  Lshw_xml_cache = "/tmp/lshw.xml"
+  Lshw_xml = "lshw.xml"
+  Machine_dat = "machine.dat"
+  Lshw_xml_cache = "/tmp/" + Lshw_xml
+  Kernel_disk_by_id = "/dev/disk/by-id"
 
   def initialize
     @conf_file = 'autobackup.conf'
@@ -107,9 +110,9 @@ class Autobackup
     else
       @current_machine_xmldata = File.read(Lshw_xml_cache)
     end
-    @current_machine = Machine::new(
+    @current_machine = Machine.new(
      :xmldata => @current_machine_xmldata,
-     :id => UUID::new.generate )
+     :id => UUID.new.generate )
     puts "done."
   end
 
@@ -159,11 +162,10 @@ class Autobackup
       end
     end
     pipe.close_read
-    kernel_disk_id_basedir = '/dev/disk/by-id'
     dev_to_kernel_id = {}
-    Dir.foreach(kernel_disk_id_basedir) do |kernel_id|
+    Dir.foreach(Kernel_disk_by_id) do |kernel_id|
       next if kernel_id =~ /^\./ # exclude '.' and '..' (and hidden entries) 
-      dev = File.readlink!(kernel_disk_id_basedir + '/' + kernel_id)
+      dev = File.readlink!(Kernel_disk_by_id + '/' + kernel_id)
       dev_to_kernel_id[dev] = kernel_id
     end
     disks_tmp_ary.each do |d|
@@ -181,10 +183,10 @@ class Autobackup
   def create_remote_dir
     dir = @conf['dir'] + '/' + @current_machine.id
     @sftp.mkdir!(dir)
-    @sftp.file.open(dir + "/lshw.xml", "w") do |f|
+    @sftp.file.open(dir + "/" + Lshw_xml, "w") do |f|
       f.puts @current_machine_xmldata
     end      
-    @sftp.file.open(dir + "/machine.dat", "w") do |f|
+    @sftp.file.open(dir + "/" + Machine_dat, "w") do |f|
       f.puts Marshal::dump(@current_machine.data)
     end
   end

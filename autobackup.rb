@@ -42,12 +42,6 @@ class Autobackup
 
     get_remote_machines  # retrieve Machine objects and fills @remote_machines
 
-    @remote_machines.each_value do |m|
-      puts "--------------------"
-      puts m.ui_print
-    end
-    exit
-
     find_machine_matches                             # fills @machine_matches
 
     # create_remote_dir
@@ -247,9 +241,15 @@ class Autobackup
       end
     when 1
       puts "Machine has been identified as"
-      print @remote_machines[@machine_matches[0][:id]].ui_print
+      puts
+      puts @remote_machines[@machine_matches[0][:id]].ui_print
     else  
-      puts "I'm not sure of your machine identity"
+      puts "I'm not sure of your machine identity. Choose one:"
+      @machine_matches.each_index do |i|
+        puts
+        print "#{i + 1}. | "
+        puts @remote_machines[@machine_matches[i][:id]].ui_print
+      end
     end
 
     puts

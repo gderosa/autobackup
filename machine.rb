@@ -396,9 +396,12 @@ class Machine
       end
     end
     s  = ""
-    s += sprintf "%s | %s\n",  @data[:name], @data[:description]
-    s += sprintf "%s %s (serial no. %s)\n",  \
-      @data[:vendor], @data[:product], @data[:serial]
+    s += sprintf "%s | %s (%s)\n",  \
+      @data[:name], @data[:description], @id
+    s += sprintf "%s %s ",  @data[:vendor], @data[:product] \
+      if @data[:vendor] and @data[:product]
+    s += sprintf "serial no. %s", @data[:serial] if @data[:serial]
+    s += "\n" if (@data[:vendor] and @data[:product]) or @data[:serial]
     s += sprintf "Motherboard: %s %s\n", \
       @data[:mobo][:vendor], @data[:mobo][:product]
     s += sprintf "Processor: %s\n", @data[:cpu][:product] 

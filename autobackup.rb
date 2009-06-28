@@ -42,6 +42,12 @@ class Autobackup
 
     get_remote_machines  # retrieve Machine objects and fills @remote_machines
 
+    @remote_machines.each_value do |m|
+      puts "--------------------"
+      puts m.ui_print
+    end
+    exit
+
     find_machine_matches                             # fills @machine_matches
 
     # create_remote_dir

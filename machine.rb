@@ -383,6 +383,28 @@ class Machine
     }
   end
 
+  def ui_print
+    mb = 0
+    @data[:ram].each do |ram|
+      case ram[:units]
+      when "bytes", "b", "Bytes", "B"
+        mb += ram[:size].to_i/(1024*1024)
+      when "kilobytes", "Kilobytes", "KiB", "kB"
+        mb += ram[:size].to_i/(1024)
+      else # MB??? # TODO: r u sure?
+        mb += ram[:size].to_i
+      end
+    end
+    s  = ""
+    s += sprintf "%s | %s\n",  @data[:name], @data[:description]
+    s += sprintf "%s %s (serial no. %s)\n",  \
+      @data[:vendor], @data[:product], @data[:serial]
+    s += sprintf "Motherboard: %s %s\n", \
+      @data[:mobo][:vendor], @data[:mobo][:product]
+    s += sprintf "Processor: %s\n", @data[:cpu][:product] 
+    s += sprintf "%d MB RAM", mb
+  end
+
   private
 
   # Checks for bogus/meaningless informations such as 

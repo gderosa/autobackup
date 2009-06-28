@@ -241,8 +241,9 @@ class Autobackup
       end
     when 1
       puts "Machine has been identified as"
-      pp @remote_machines[@machine_matches[0][:id]] # TODO: Machine#pp
-    # else (TODO) 
+      print @remote_machines[@machine_matches[0][:id]].ui_print
+    else  
+      puts "I'm not sure of your machine identity"
     end
 
     puts

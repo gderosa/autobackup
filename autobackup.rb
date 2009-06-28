@@ -225,31 +225,46 @@ class Autobackup
       end
     end
     @machine_matches = @machine_matches.sort_by {|m| -m[:percent_match]}  
+    return if @machine_matches.length == 0
     min_percent_match = @machine_matches[0][:percent_match]*0.5 # 2nd filter
     @machine_matches.reject! {|m| m[:percent_match]<min_percent_match} 
-    pp @machine_matches
   end
 
   def ui
-    puts
-    puts "1. Backup"
-    puts "2. Restore"
-    puts "3. Exit"
-    begin
-      choice = $stdin.gets.strip
-    rescue
-      exit
+    puts ""
+    case @machine_matches.length
+    when 0
+      puts "No matching machine found in the database: creating a new one."
+      puts "Choose a name for the machine"
+      while `hostname #{$stdin.gets.strip} 2>&1`.length > 0 
+        puts "Invalid hostname. Choose another one"
+      end
+    when 1
+      puts "Machine has been identified as"
+      pp @remote_machines[@machine_matches[0][:id]] # TODO: Machine#pp
+    # else (TODO) 
     end
-    case choice 
-    when '1'
-      ui_backup
-    when '2'
-      puts "Not implemented yet"
-      exit
-    when '3'
-      exit
-    else
-      ui
+
+    puts
+    choice = ""
+    while not %w{1 2 3}.include? choice
+      puts "1. Backup"
+      puts "2. Restore"
+      puts "3. Exit"
+      begin
+        choice = $stdin.gets.strip
+      rescue
+        exit
+      end
+      case choice 
+      when '1'
+        ui_backup
+      when '2' 
+        puts "Not implemented yet"
+        exit
+      when '3'
+        exit
+      end
     end
   end
 

@@ -45,8 +45,6 @@ class Autobackup
 
     find_machine_matches                             # fills @machine_matches
 
-    # create_remote_dir
-
     ui
 
     close_connection
@@ -235,11 +233,21 @@ class Autobackup
     puts ""
     case @machine_matches.length
     when 0
-      puts "No matching machine found in the database: creating a new one."
-      puts "Choose a name for the machine"
+      puts "No matching machine found in the database: creating a new entry."
+      print "Choose a name for this computer: "
       while `hostname #{$stdin.gets.strip} 2>&1`.length > 0 
-        puts "Invalid hostname. Choose another one"
+        print "Invalid hostname. Choose another one: "
       end
+      puts "Updating you data..."
+      # re-run lshw to update hostname in the xml too...
+      # TODO: more efficiently, edit @current_machine_xmldata in place
+      @current_machine_xmldata = `lshw -quiet -xml`
+      # rightly, do not parse the xml again, edit data structure directly
+      @current_machine.data[:name] = `hostname`.strip
+      @remote_machine = @current_machine
+      create_remote_dir
+      puts "\nOk. Your machine details follow:\n\n"
+      puts @current_machine.ui_print
     when 1
       @remote_machine = @remote_machines[@machine_matches[0][:id]]
       puts "Machine has been identified as"

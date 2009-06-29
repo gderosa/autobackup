@@ -26,6 +26,7 @@ class Autobackup
     @conf_file = 'autobackup.conf'
     @remote_machines = {}
     @machine_matches = []
+    @remote_machine = nil
     @current_disks = []
   end
 
@@ -226,7 +227,7 @@ class Autobackup
     end
     @machine_matches = @machine_matches.sort_by {|m| -m[:percent_match]}  
     return if @machine_matches.length == 0
-    min_percent_match = @machine_matches[0][:percent_match]*0.5 # 2nd filter
+    min_percent_match = @machine_matches[0][:percent_match]*0.6 # 2nd filter
     @machine_matches.reject! {|m| m[:percent_match]<min_percent_match} 
   end
 
@@ -240,16 +241,37 @@ class Autobackup
         puts "Invalid hostname. Choose another one"
       end
     when 1
+      @remote_machine = @remote_machines[@machine_matches[0][:id]]
       puts "Machine has been identified as"
       puts
-      puts @remote_machines[@machine_matches[0][:id]].ui_print
+      puts @remote_machine.ui_print
     else  
       puts "I'm not sure of your machine identity. Choose one:"
       @machine_matches.each_index do |i|
         puts
-        print "#{i + 1}. | "
+        print "#{i + 1}. " +
+          "(#{(@machine_matches[i][:percent_match]*100).truncate/100}% match)"+
+          " | "
         puts @remote_machines[@machine_matches[i][:id]].ui_print
       end
+      puts
+      i = nil
+      valid = false
+      while not valid
+        print "Enter the number and press ENTER: "
+        str = $stdin.gets.strip
+        begin
+          i = str.to_i - 1
+          @remote_machine = @remote_machines[@machine_matches[i][:id]]
+          valid = true
+          valid = false if not @remote_machine
+          valid = false if i < 0 or i > @machine_matches.length-1
+        rescue
+          valid = false
+        end
+      end
+      puts "\n You have chosen:"
+      puts @remote_machine.ui_print
     end
 
     puts

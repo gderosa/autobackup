@@ -45,10 +45,6 @@ class Autobackup
 
     find_machine_matches                             # fills @machine_matches
 
-    f = File.open("doc/classes/Autobackup/@machine_matches.sample.rb",'w')
-    PP.pp @machine_matches, f
-    f.close
-
     ui
 
     close_connection

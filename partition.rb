@@ -3,6 +3,7 @@ class Partition
   attr_reader :dev, :fstype, :kernel_id, :pn, :size, :start, :end
 
   Mount_base = "/mnt/target/"
+  BufSize = 128*1024
   
   def initialize(args) 
     @dev = args[:dev]
@@ -31,7 +32,7 @@ class Partition
     end
 
     w = sftp.file.open(dir + "/" + "part.img.gz", "w")
-    while str = r.sysread(128*1024)
+    while str = r.sysread(BufSize) 
       w.write str
     end
 

@@ -1,0 +1,13 @@
+#<Disk:0x7f261d1d1970
+ @dev="/dev/sdb",
+ @kernel_id="usb-JetFlash_Transcend_2GB_Y5FHQDGN-0:0",
+ @size="2019557376B",
+ @volumes=
+  [#<Partition:0x7f261d1d17b8
+    @dev="/dev/sdb1",
+    @end="2019474431B",
+    @fstype="fat32",
+    @kernel_id="usb-JetFlash_Transcend_2GB_Y5FHQDGN-0:0-part1",
+    @pn="1",
+    @size="2019465216B",
+    @start="9216B">]>

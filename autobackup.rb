@@ -306,6 +306,11 @@ class Autobackup
   end
 
   def ui_backup
+    %w{0 1}.each do |s|
+      f = File.open("Disk.sample#{s}.rb", 'w')
+      PP.pp @current_disks[s.to_i], f
+      f.close
+    end
   end
 
 end

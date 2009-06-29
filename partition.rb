@@ -24,7 +24,7 @@ class Partition
       )
     when "ntfs"
       IO.popen(\
-        "ntfsclone -s -O - #@dev",
+        "ntfsclone -s -O - #@dev | gzip --fast -c",
         'r'
       )
     else

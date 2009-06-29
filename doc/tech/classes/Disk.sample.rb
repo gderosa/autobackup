@@ -1,4 +1,4 @@
-[#<Disk:0x7fdccf62cdf8
+#<Disk:0x7fdccf62cdf8
   @dev="/dev/sda",
   @kernel_id="ata-FUJITSU_MHV2080BH_PL_NW9ZT6C37VVJ",
   @size="80026361856B",
@@ -39,4 +39,4 @@
      @kernel_id="usb-JetFlash_Transcend_2GB_Y5FHQDGN-0:0-part1",
      @pn="1",
      @size="2019465216B",
-     @start="9216B">]>]
+     @start="9216B">]

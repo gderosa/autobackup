@@ -134,6 +134,8 @@ class Autobackup
     lines = pipe.readlines
     @parted_output = ""
     lines.each do |line|
+      line.gsub!(/\(parted\)/,"")
+      line.gsub!(/\r/,"")
       @parted_output += line
       if line =~ /^(\/dev\/[^:]+):(.*):(.*):(.*):(.*):(.*):(.*);/ 
         if $3 == "dm"
@@ -326,11 +328,25 @@ class Autobackup
 
     @current_disks.each do |disk| 
       diskdir = machinedir + "/" + disk.kernel_id
+
+      begin
+        @sftp.stat!(diskdir)
+      rescue Net::SFTP::StatusException 
+        @sftp.mkdir!(diskdir, :permissions=>0700) 
+      end
+
       puts "\nBack up of #{disk.kernel_id} (#{disk.dev}, size=#{disk.size}):"
       disk.volumes.each do |part|
         volumedir = diskdir + "/" + part.pn
-        puts "  partition #{part.pn} (#{part.dev}) ... "
-        part.backup(@sftp, volumedir)  
+
+        begin
+          @sftp.stat!(volumedir) 
+        rescue Net::SFTP::StatusException 
+          @sftp.mkdir!(volumedir, :permissions=>0700)
+        end
+
+        puts "  partition #{part.pn} (#{part.dev})... "
+        part.backup(@sftp, volumedir) 
       end
     end
     puts

@@ -14,8 +14,30 @@ class Partition
     @end = args[:end]
   end
 
-  def backup(ftp, dir)
-    pp "    #{ftp}, #{dir}"
+  def backup(sftp, dir)
+    r = case @fstype
+    when "vfat", "fat", "fat32", "fat16", "msdos", "msdosfs", \
+      "xfs", "ext3", "ext2"
+      IO.popen(\
+        "partimage -V0 -d -o -z0 -Bx=y save #@dev stdout | gzip --fast -c",
+        'r'
+      )
+    when "ntfs"
+      IO.popen(\
+        "ntfsclone -s -O - #@dev",
+        'r'
+      )
+    else
+      return
+    end
+
+    w = sftp.file.open(dir + "/" + "part.img.gz", "w")
+    while str = r.read(96*1024)
+      w.write str
+    end
+
+    r.close
+    w.close
   end
 
   def mounted?

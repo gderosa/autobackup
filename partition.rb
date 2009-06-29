@@ -14,6 +14,10 @@ class Partition
     @end = args[:end]
   end
 
+  def backup(ftp, dir)
+    pp "    #{ftp}, #{dir}"
+  end
+
   def mounted?
     return true if @mountpoint
     return false

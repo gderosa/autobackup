@@ -19,6 +19,8 @@ class Autobackup
 
   Lshw_xml = "lshw.xml"
   Machine_dat = "machine.dat"
+  Parted_txt = "parted.txt"
+  Disks_dat = "disks.dat"
   Lshw_xml_cache = "/tmp/" + Lshw_xml
   Kernel_disk_by_id = "/dev/disk/by-id"
 
@@ -26,8 +28,11 @@ class Autobackup
     @conf_file = 'autobackup.conf'
     @remote_machines = {}
     @machine_matches = []
-    @remote_machine = nil
+    @remote_machine = nil                           # class Machine
     @current_disks = []
+    @current_machine = nil                          # class Machine
+    @current_machine_xmldata = ""                   # lshw -xml output
+    @parted_output = ""                             # "@current_disks_textdata"
   end
 
   def run
@@ -121,13 +126,15 @@ class Autobackup
     disks_tmp_ary = []
     disk_tmp_hash = {:dev=>nil, :volumes=>[], :kernel_id=>nil, :size=>0}
     disk_tmp_dev = nil
-    pipe = IO.popen("parted -m", "r+")
+    pipe = IO.popen("LANG=C && parted -m", "r+")
     pipe.puts "unit b"
     pipe.puts "print all"
     pipe.puts "quit"
     pipe.close_write
     lines = pipe.readlines
+    @parted_output = ""
     lines.each do |line|
+      @parted_output += line
       if line =~ /^(\/dev\/[^:]+):(.*):(.*):(.*):(.*):(.*):(.*);/ 
         if $3 == "dm"
           disk_tmp_dev = nil  # esclude device mapper
@@ -251,7 +258,8 @@ class Autobackup
     when 1
       @remote_machine = @remote_machines[@machine_matches[0][:id]]
       puts "Machine has been identified as"
-      puts
+      print \
+        "(#{(@machine_matches[0][:percent_match]*100).truncate/100}% match) | "
       puts @remote_machine.ui_print
     else  
       puts "I'm not sure of your machine identity. Choose one:"
@@ -306,11 +314,26 @@ class Autobackup
   end
 
   def ui_backup
-    %w{0 1}.each do |s|
-      f = File.open("Disk.sample#{s}.rb", 'w')
-      PP.pp @current_disks[s.to_i], f
-      f.close
+    # TODO? choose whether to backup all disks or just some of them
+    machinedir = @conf['dir'] + "/" + @remote_machine.id
+
+    @sftp.file.open(machinedir + "/" + Parted_txt, "w") do |f|
+      f.puts @parted_output
     end
+    @sftp.file.open(machinedir + "/" + Disks_dat, "w") do |f|
+      f.puts Marshal::dump(@current_disks)
+    end
+
+    @current_disks.each do |disk| 
+      diskdir = machinedir + "/" + disk.kernel_id
+      puts "\nBack up of #{disk.kernel_id} (#{disk.dev}, size=#{disk.size}):"
+      disk.volumes.each do |part|
+        volumedir = diskdir + "/" + part.pn
+        puts "  partition #{part.pn} (#{part.dev}) ... "
+        part.backup(@sftp, volumedir)  
+      end
+    end
+    puts
   end
 
 end

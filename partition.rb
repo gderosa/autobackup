@@ -16,8 +16,7 @@ class Partition
 
   def backup(sftp, dir)
     r = case @fstype
-    when "vfat", "fat", "fat32", "fat16", "msdos", "msdosfs", \
-      "xfs", "ext3", "ext2"
+    when "vfat", "fat", "fat32", "fat16", "msdos", "msdosfs"
       IO.popen(\
         "partimage -V0 -d -o -z0 -Bx=y save #@dev stdout | gzip --fast -c",
         'r'
@@ -32,7 +31,7 @@ class Partition
     end
 
     w = sftp.file.open(dir + "/" + "part.img.gz", "w")
-    while str = r.read(96*1024)
+    while str = r.sysread(128*1024)
       w.write str
     end
 

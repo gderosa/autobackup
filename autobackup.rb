@@ -346,7 +346,7 @@ class Autobackup
         end
 
         puts "  partition #{part.pn} (#{part.dev})... "
-        part.backup(@sftp, volumedir) 
+        part.backup(@conf, volumedir) 
       end
     end
     puts

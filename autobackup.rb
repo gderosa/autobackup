@@ -345,8 +345,9 @@ class Autobackup
           @sftp.mkdir!(volumedir, :permissions=>0700)
         end
 
-        puts "  partition #{part.pn} (#{part.dev})... "
+        puts "\n  partition #{part.pn} (#{part.dev}):"
         part.backup(@conf, volumedir) 
+        # part.backup(@sftp, volumedir) # the slower, pure-Ruby version
       end
     end
     puts

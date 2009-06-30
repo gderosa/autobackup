@@ -47,9 +47,10 @@ class Partition
 
   end
 
+=begin
   # The elegant, pure-Ruby solution is slower...
-=begin  
   def backup(sftp, dir)
+    t_i = `date +%s`.to_i
     r = case @fstype
     when "vfat", "fat", "fat32", "fat16", "msdos", "msdosfs"
       IO.popen(\
@@ -65,14 +66,19 @@ class Partition
       return
     end
     
-    w = sftp.file.open(dir + "/" + "part.img.gz", "w")
+    w = sftp.file.open(dir + "/" + Image_file_name, "w")
    
-    bufsiz = 128*1024
+    bufsiz = 64*1024
     begin
       loop { w.write r.sysread(bufsiz) } 
     rescue EOFError
       # do nothing, go on
     end 
+
+    t_f = `date +%s`.to_i
+
+    puts "ELAPSED TIME"
+    puts t_f - t_i
 
     r.close
     w.close

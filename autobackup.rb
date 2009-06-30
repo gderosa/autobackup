@@ -10,6 +10,7 @@ require 'rubygems'
 require 'net/ssh'
 require 'net/sftp'
 require 'uuid'
+require 'highline/import'
 
 require 'machine'
 require 'disk'
@@ -65,10 +66,13 @@ class Autobackup
   private
 
   def open_connection
-    # Net::SSH connection is authenticated via password prompt.
+    # Net::SSH connection is authenticated via password prompt, if no
+    # keys available/accepted.
+    #
     # Disk image uploads go through a separate connection 
-    # (see Partition#backup), authenticated via keys.
-
+    # (see Partition#backup), authenticated via keys which are created
+    # on the fly, if necessary.
+    #
     if File.readable? SSH_keyfile and File.readable? SSH_keyfile_pub
       @ssh_key[:local_already_present] = true
     else
@@ -88,13 +92,18 @@ class Autobackup
       )
       @ssh_key[:remote_already_present] = true
     rescue Net::SSH::AuthenticationFailed
-      puts "password!"
-      @ssh = Net::SSH.start(
-        @conf['server'],
-        @conf['user'],
-        :password => $stdin.gets.strip
-      )
-      @ssh_key[:remote_already_present] = false
+      begin
+        @ssh = Net::SSH.start(
+          @conf['server'],
+          @conf['user'],
+          :password => ask("Enter password to access the server: ") \
+            { |q| q.echo = "*" } 
+        )
+        @ssh_key[:remote_already_present] = false
+      rescue Net::SSH::AuthenticationFailed
+        puts "Wrong password. Exiting."
+        exit
+      end
     rescue
       STDERR.puts "ERROR: #{$!}"
       exit 2 

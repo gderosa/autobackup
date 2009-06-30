@@ -23,6 +23,8 @@ class Autobackup
   Disks_dat = "disks.dat"
   Lshw_xml_cache = "/tmp/" + Lshw_xml
   Kernel_disk_by_id = "/dev/disk/by-id"
+  SSH_keyfile = ENV["HOME"] + "/.ssh/id_rsa"
+  SSH_keyfile_pub = SSH_keyfile + ".pub"
 
   def initialize
     @conf_file = 'autobackup.conf'
@@ -33,18 +35,22 @@ class Autobackup
     @current_machine = nil                          # class Machine
     @current_machine_xmldata = ""                   # lshw -xml output
     @parted_output = ""                             # "@current_disks_textdata"
+    @ssh_key = {
+      :key => "",
+      :local_already_present => false,
+      :remote_already_present => false
+    }
   end
 
   def run
-
     read_conf                                       # sets @conf
     parse_opts                                      # @conf['nocache']
+
+    open_connection
 
     detect_hardware                                 # sets @current_machine
 
     detect_disks                                    # sets @current_disks 
-
-    open_connection                                 # sets @ssh, @sftp
 
     get_remote_machines  # retrieve Machine objects and fills @remote_machines
 
@@ -59,24 +65,89 @@ class Autobackup
   private
 
   def open_connection
-    print "Contacting the server... "
-    $stdout.flush
+    # Net::SSH connection is authenticated via password prompt.
+    # Disk image uploads go through a separate connection 
+    # (see Partition#backup), authenticated via keys.
+
+    if File.readable? SSH_keyfile and File.readable? SSH_keyfile_pub
+      @ssh_key[:local_already_present] = true
+    else
+      @ssh_key[:local_already_present] = false
+      [SSH_keyfile, SSH_keyfile_pub].each do |f|
+        File.remove f if File.exists? f
+      end
+      system("ssh-keygen -f #{SSH_keyfile} -P '' > /dev/null")
+    end
+    @ssh_key[:key] = File.read(SSH_keyfile_pub).strip # for later use...
+    #print "Enter password to access the server: "
+    #password = $stdin.gets.strip
     begin
       @ssh = Net::SSH.start(
         @conf['server'],
-        @conf['user'],
-        :password => @conf['passwd']
+        @conf['user']
       )
-      @sftp = Net::SFTP::Session.new(@ssh)
-      @sftp.loop { @sftp.opening? } # wait until ready
+      @ssh_key[:remote_already_present] = true
+    rescue Net::SSH::AuthenticationFailed
+      puts "password!"
+      @ssh = Net::SSH.start(
+        @conf['server'],
+        @conf['user'],
+        :password => $stdin.gets.strip
+      )
+      @ssh_key[:remote_already_present] = false
     rescue
       STDERR.puts "ERROR: #{$!}"
       exit 2 
     end
-    puts "done."
+
+    @sftp = Net::SFTP::Session.new(@ssh)
+    @sftp.loop { @sftp.opening? } # wait until ready
+
+    unless @ssh_key[:remote_already_present]
+      # sftp does not support append mode...
+      # TODO: what if remote home directory is not under /home ?
+      # NOTE: "~/something" does not work!
+      # TODO: query remote ENVironment?
+      old = "/home/#{@conf['user']}/.ssh/authorized_keys"
+      new = old + ".new"
+      begin
+        r = @sftp.file.open(old, 'r') 
+        w = @sftp.file.open(new, 'w')
+        w.puts @ssh_key[:key]
+        while line = r.gets 
+          w.puts line
+        end
+        @ssh.exec! "mv #{new} #{old}"
+        r.close
+        w.close
+      rescue Net::SFTP::StatusException # remote authorized_keys doesn't exists
+        w = @sftp.file.open(old, 'w') # which is, in fact, new ;-D
+        w.puts @ssh_key[:key]
+        w.close
+      end
+    end
   end
 
   def close_connection
+    unless @ssh_key[:remote_already_present]
+      # When finished, remove our temporary ssh key from remote list
+      # to not clutter server's .ssh/authorized_keys
+      #
+      # TODO: what if remote home directory is not under /home ?
+      # NOTE: tilde substitution (e.g. ~/some/thing) does not work!
+      # TODO: query remote ENVironment?
+      old = "/home/#{@conf['user']}/.ssh/authorized_keys"
+      new = old + ".new"
+      r = @sftp.file.open(old, 'r') 
+      w = @sftp.file.open(new, 'w')
+      while line = r.gets
+        w.puts line unless line.strip == @ssh_key[:key].strip
+      end
+      @ssh.exec! "mv #{new} #{old}"
+      r.close
+      w.close
+    end
+
     @sftp.close_channel
     @ssh.close
   end
@@ -301,16 +372,16 @@ class Autobackup
       begin
         choice = $stdin.gets.strip
       rescue
-        exit
+        return 
       end
       case choice 
       when '1'
         ui_backup
       when '2' 
         puts "Not implemented yet"
-        exit
+        return
       when '3'
-        exit
+        return
       end
     end
   end

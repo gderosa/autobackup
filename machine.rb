@@ -29,20 +29,18 @@ class Machine
       end
 
       # A caching mechanism to not parse XML every time...
-      begin # Update cache (i.e. datfile) if it's out of date
-        if (File.stat(xmlfile).mtime > File.stat(datfile).mtime) or nocache 
-          @data = Machine::parse_lshw_xml(File.read(xmlfile))
-          File.open(datfile, "w") do |f|
-            f.puts Marshal::dump(@data)
-          end
-        else
-          @data = Marshal::load(sftp.download!(datfile))
-        end
-      rescue # datfile does not exists
+      # Update cache (i.e. datfile) if it's out of date
+      if \
+        (File.stat(xmlfile).mtime.to_i > File.stat(datfile).mtime.to_i) or \
+        nocache or
+        (not File.readable?(datfile))  
+
         @data = Machine::parse_lshw_xml(File.read(xmlfile))
         File.open(datfile, "w") do |f|
           f.puts Marshal::dump(@data)
         end
+      else
+        @data = Marshal::load(File.read(datfile)) 
       end
 
     else # Machine object data are not retrieved from a remote server

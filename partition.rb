@@ -16,14 +16,14 @@ class Partition
   end
 
   def backup(conf, dir)
-    partimage = "partimage -V0 -d -o -z0 -Bx=y save #@dev stdout"
+    partimage = "partimage -g0 -c -V0 -d -o -z0 -Bx=y save #@dev stdout"
     ntfsclone = "ntfsclone -s -O - #@dev"
     gzip = "gzip --fast -c"
     dest_file = dir + "/" + Image_file_name
 
     cmd = case @fstype
     when "vfat", "fat", "fat32", "fat16", "msdos", "msdosfs", \
-      "ext2", "ext3"
+      "ext2", "ext3", "xfs", "jsf", "reiserfs"
 
       partimage + " | " + gzip + " > " + dest_file
     when "ntfs"
@@ -32,13 +32,7 @@ class Partition
       return
     end
 
-    t_i = `date +%s`.to_i
     system(cmd) 
-    t_f = `date +%s`.to_i
-
-    puts "TIME ELAPSED"
-    print t_f - t_i
-    puts "s"
 
   end
 

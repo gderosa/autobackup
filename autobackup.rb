@@ -70,8 +70,10 @@ class Autobackup
   def parse_opts
     # Do Repeat Yourself ;-P
     ARGV.each do |arg|
-      if arg == "--nocache"
-        @conf['nocache'] = true 
+      %w{nocache noninteractive}.each do |opt|
+        if arg == "--" + opt
+          @conf[opt] = true 
+        end
       end
     end
   end
@@ -291,7 +293,6 @@ class Autobackup
   end
 
   def ui_backup
-    # TODO? choose whether to backup all disks or just some of them
     machinedir = @conf['localdir'] + "/" + @remote_machine.id
 
     File.open(machinedir + "/" + Parted_txt, "w") do |f|
@@ -302,24 +303,34 @@ class Autobackup
     end
 
     @current_disks.each do |disk| 
-      diskdir = machinedir + "/" + disk.kernel_id
+      puts "\nBack up of #{disk.kernel_id}" + \
+	"\n (#{disk.dev}, size=#{disk.size})"
+      if @conf['noninteractive'] or (agree("Proceed?") {|q| q.default="yes"})
 
-      begin
-        File.stat(diskdir)
-      rescue Errno::ENOENT
-        Dir.mkdir(diskdir, 0700)   
-      end
+	diskdir = machinedir + "/" + disk.kernel_id
 
-      puts "\nBack up of #{disk.kernel_id} (#{disk.dev}, size=#{disk.size}):"
-      disk.volumes.each do |part|
-        volumedir = diskdir + "/" + part.pn
+	begin
+	  File.stat(diskdir)
+	rescue Errno::ENOENT
+	  Dir.mkdir(diskdir, 0700)   
+	end
 
-        unless File.exists?(volumedir) 
-          Dir.mkdir(volumedir, 0700)
-        end
+	disk.volumes.each do |part|
+	  next if ["linux-swap", ""].include? part.fstype
 
-        puts "\n  partition #{part.pn} (#{part.dev}):"
-        part.backup(@conf, volumedir) 
+	  volumedir = diskdir + "/" + part.pn
+
+	  unless File.exists?(volumedir) 
+	    Dir.mkdir(volumedir, 0700)
+	  end
+
+	  puts "\n  partition #{part.pn} (#{part.dev}) Type = #{part.fstype}:"
+	  if @conf['noninteractive'] or \
+	    agree("Backup?") {|q| q.default="yes"}
+
+	    part.backup(@conf, volumedir) 
+	  end
+	end
       end
     end
     puts

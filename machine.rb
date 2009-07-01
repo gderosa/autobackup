@@ -18,8 +18,7 @@ class Machine
 
     if args[:remote]
 
-      sftp = args[:remote][:sftp]
-      dir = args[:remote][:basedir] + '/' + args[:id] 
+      dir = args[:remote][:basedir] + '/' + args[:id] # SSHFS mountpoint, really
       xmlfile = dir + '/' + "lshw.xml"
       datfile = dir + '/' + "machine.dat"
 
@@ -31,17 +30,17 @@ class Machine
 
       # A caching mechanism to not parse XML every time...
       begin # Update cache (i.e. datfile) if it's out of date
-        if (sftp.stat!(xmlfile).mtime > sftp.stat!(datfile).mtime) or nocache 
-          @data = Machine::parse_lshw_xml(sftp.download!(xmlfile))
-          sftp.file.open(datfile, "w") do |f|
+        if (File.stat(xmlfile).mtime > File.stat(datfile).mtime) or nocache 
+          @data = Machine::parse_lshw_xml(File.read(xmlfile))
+          File.open(datfile, "w") do |f|
             f.puts Marshal::dump(@data)
           end
         else
           @data = Marshal::load(sftp.download!(datfile))
         end
       rescue # datfile does not exists
-        @data = Machine::parse_lshw_xml(sftp.download!(xmlfile))
-        sftp.file.open(datfile, "w") do |f|
+        @data = Machine::parse_lshw_xml(File.read(xmlfile))
+        File.open(datfile, "w") do |f|
           f.puts Marshal::dump(@data)
         end
       end
@@ -352,8 +351,8 @@ class Machine
       :uuid => 3.0,
       :mobo => 3.0,
       :cpu => 3.0,
-      :ram => 2,
-      :net => 4.8,
+      :ram => 2.0,
+      :net => 5.4,
       :disks => 4.8
     }
     score_max = score_conf.sum

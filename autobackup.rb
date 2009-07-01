@@ -44,9 +44,6 @@ class Autobackup
 
     detect_disks                                    # sets @current_disks 
 
-    pp @current_disks
-    exit
-
     get_remote_machines  # retrieve Machine objects and fills @remote_machines
 
     find_machine_matches                             # fills @machine_matches

@@ -1,11 +1,12 @@
 class Partition
 
-  attr_reader :dev, :fstype, :kernel_id, :pn, :size, :start, :end
+  attr_reader :dev, :fstype, :kernel_id, :pn, :size, :start, :end, :mountpoint
 
   Mount_base = "/mnt/target/"
   Image_file_name = "img.gz"
   
   def initialize(args) 
+
     @dev = args[:dev]
     @pn = args[:pn]
     @fstype = args[:fstype]
@@ -13,6 +14,7 @@ class Partition
     @size = args[:size]
     @start = args[:start]
     @end = args[:end]
+    @mountpoint = find_mountpoint
   end
 
   def backup(conf, dir)
@@ -41,10 +43,9 @@ class Partition
     return false
   end
 
-  def mount
-    if system("mount #@dev #{Mount_base}/#@dev") 
-      @mountpoint = "#{Mount_base}/#@dev"
-      @fstype = getfstype
+  def mount(mountpoint="#{Mount_base}/#@dev")
+    if system("mount #@dev #{mountpoint}") 
+      @mountpoint = mountpoint
       return true
     else
       return false
@@ -53,7 +54,8 @@ class Partition
 
   def umount
     if mounted?
-      if system("umount #@mountpoint")
+      if system("umount #@dev 2> /dev/null")
+        @mountpoint = nil
         return true
       else
         return false
@@ -61,6 +63,21 @@ class Partition
     else
       return false
     end
+  end
+
+  def find_mountpoint
+    mountpoint = nil
+    File.read("/proc/mounts").each_line do |line|
+      if line =~ /^(\S+) (\S+) /
+        begin
+          if @dev == File.readlink!($1)
+            mountpoint = $2 
+          end
+        rescue
+        end
+      end
+    end
+    return mountpoint
   end
 
 end

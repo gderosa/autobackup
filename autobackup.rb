@@ -308,32 +308,39 @@ class Autobackup
     @current_disks.each do |disk| 
       puts "\nBack up of #{disk.kernel_id}" + \
 	"\n (#{disk.dev}, size=#{disk.size})"
+      
       if @conf['noninteractive'] or (agree("Proceed?") {|q| q.default="yes"})
 
-	diskdir = machinedir + "/" + disk.kernel_id
+      	diskdir = machinedir + "/" + disk.kernel_id
 
-	begin
-	  File.stat(diskdir)
-	rescue Errno::ENOENT
-	  Dir.mkdir(diskdir, 0700)   
-	end
+      	begin
+      	  File.stat(diskdir)
+      	rescue Errno::ENOENT
+      	  Dir.mkdir(diskdir, 0700)   
+      	end
 
-	disk.volumes.each do |part|
-	  next if ["linux-swap", ""].include? part.fstype
+      	disk.volumes.each do |part|
+      	  next if ["linux-swap", ""].include? part.fstype
 
-	  volumedir = diskdir + "/" + part.pn
+          # if mounted, try to unmount, backup and remount
+          if ( mountpoint_save = part.mountpoint )
+            next if !part.umount # couldn't unmount -> skip
+          end
 
-	  unless File.exists?(volumedir) 
-	    Dir.mkdir(volumedir, 0700)
-	  end
+      	  volumedir = diskdir + "/" + part.pn
 
-	  puts "\n  partition #{part.pn} (#{part.dev}) Type = #{part.fstype}:"
-	  if @conf['noninteractive'] or \
-	    agree("Backup?") {|q| q.default="yes"}
+      	  unless File.exists?(volumedir) 
+      	    Dir.mkdir(volumedir, 0700)
+      	  end
 
-	    part.backup(@conf, volumedir) 
-	  end
-	end
+      	  puts "\n  partition #{part.pn} (#{part.dev}) Type = #{part.fstype}"
+      	  if @conf['noninteractive'] or \
+      	    agree("Backup?") {|q| q.default="yes"}
+
+      	    part.backup(@conf, volumedir) 
+      	  end
+          part.mount(mountpoint_save) if mountpoint_save
+      	end
       end
     end
     puts

@@ -4,8 +4,9 @@
 
 class File
                                           
-  def File.readlink!(path)                
+  def File.readlink!(path)      
     path = File.expand_path(path)
+    return path unless File.symlink?(path)
     dirname = File.dirname(path)
     readlink = File.readlink(path)
     if not readlink =~ /^\//              # it's a relative path

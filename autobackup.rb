@@ -44,6 +44,9 @@ class Autobackup
 
     detect_disks                                    # sets @current_disks 
 
+    pp @current_disks
+    exit
+
     get_remote_machines  # retrieve Machine objects and fills @remote_machines
 
     find_machine_matches                             # fills @machine_matches
@@ -114,6 +117,7 @@ class Autobackup
       line.gsub!(/\(parted\)/,"")
       line.gsub!(/\r/,"")
       @parted_output += line
+      # disk found:
       if line =~ /^(\/dev\/[^:]+):(.*):(.*):(.*):(.*):(.*):(.*);/ 
         if $3 == "dm"
           disk_tmp_dev = nil  # esclude device mapper
@@ -123,11 +127,13 @@ class Autobackup
             :dev => disk_tmp_dev,
             :size => $2,
             :volumes => [],
-            :kernel_id => nil
+            :kernel_id => nil,
+            :model => $7
           }
           disks_tmp_ary << disk_tmp_hash
         end
       end
+      # partition:
       if line =~ /^(\d+):(.*):(.*):(.*):(.+):(.*):(.*);/ and disk_tmp_dev
         pn  = $1
         dev = disk_tmp_dev + pn

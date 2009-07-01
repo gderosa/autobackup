@@ -22,7 +22,9 @@ class Partition
     dest_file = dir + "/" + Image_file_name
 
     cmd = case @fstype
-    when "vfat", "fat", "fat32", "fat16", "msdos", "msdosfs"
+    when "vfat", "fat", "fat32", "fat16", "msdos", "msdosfs", \
+      "ext2", "ext3"
+
       partimage + " | " + gzip + " > " + dest_file
     when "ntfs"
       ntfsclone + " | " + gzip + " > " + dest_file

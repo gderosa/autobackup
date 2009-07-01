@@ -99,6 +99,8 @@ class Autobackup
     disks_tmp_ary = []
     disk_tmp_hash = {:dev=>nil, :volumes=>[], :kernel_id=>nil, :size=>0}
     disk_tmp_dev = nil
+    # NOTE: WARNING: older versions of GNU parted do not support -m option!
+    # Upgrade to a newer one if necessary.
     pipe = IO.popen("LANG=C && parted -m", "r+")
     pipe.puts "unit b"
     pipe.puts "print all"
@@ -163,7 +165,7 @@ class Autobackup
 
   def create_remote_dir
     dir = @conf['localdir'] + '/' + @current_machine.id
-    File.makedirs(dir)
+    Dir.mkdir(dir, 0700) 
     File.open(dir + "/" + Lshw_xml, "w") do |f|
       f.puts @current_machine_xmldata
     end      
@@ -304,8 +306,8 @@ class Autobackup
 
       begin
         File.stat(diskdir)
-      rescue Net::SFTP::StatusException 
-        File.makdirs(diskdir, :permissions=>0700) 
+      rescue Errno::ENOENT
+        Dir.mkdir(diskdir, 0700)   
       end
 
       puts "\nBack up of #{disk.kernel_id} (#{disk.dev}, size=#{disk.size}):"
@@ -313,7 +315,7 @@ class Autobackup
         volumedir = diskdir + "/" + part.pn
 
         unless File.exists?(volumedir) 
-          File.makedirs(volumedir, :permissions=>0700)
+          Dir.mkdir(volumedir, 0700)
         end
 
         puts "\n  partition #{part.pn} (#{part.dev}):"

@@ -44,6 +44,7 @@ class Partition
   end
 
   def mount(mountpoint="#{Mount_base}/#@dev")
+    Dir.mkdir(mountpoint) unless File.directory?(mountpoint)
     if system("mount #@dev #{mountpoint}") 
       @mountpoint = mountpoint
       return true

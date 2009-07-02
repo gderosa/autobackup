@@ -205,6 +205,10 @@ class Autobackup
     print "Retrieving machines remote data."
     $stdout.flush
     basedir = @conf['localdir']
+    unless File.directory?(basedir)
+      STDERR.puts ".. Ooops!\n--> directory #{basedir} does not exists!\nExiting."
+      exit 1
+    end
     Dir.entries(basedir).each do |entry|
       name = entry
       unless name =~ /^\./  #exclude '.' and '..' and hidden directories

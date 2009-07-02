@@ -14,6 +14,8 @@ require 'highline/import'
 
 require 'machine'
 require 'disk'
+require 'partition'
+require 'netvolume'
 require 'file'
 
 class Autobackup
@@ -34,11 +36,17 @@ class Autobackup
     @current_machine = nil                          # class Machine
     @current_machine_xmldata = ""                   # lshw -xml output
     @parted_output = ""                             # "@current_disks_textdata"
+    @network_fs = nil
+    @network_previously_mounted = false
   end
 
   def run
     read_conf                                       # sets @conf
-    parse_opts                                      # @conf['nocache']
+    parse_opts                                      # overwrite @conf as needed
+
+    mount_network
+
+    validate_conf                                   # check @conf is valid
 
     detect_hardware                                 # sets @current_machine
 
@@ -50,6 +58,7 @@ class Autobackup
 
     ui
 
+    @network_fs.umount unless @network_previously_mounted
   end
 
   private
@@ -67,14 +76,13 @@ class Autobackup
     end
   end
 
-  def parse_opts
+  def parse_opts 
     # Do Repeat Yourself ;-P
 
-    aliases = {
-      "--dir" => "--localdir"
-    }
+    aliases = {}
 
     waiting = nil
+    
     ARGV.each do |arg|
 
       aliases.each_pair {|old, new| arg = new if arg == old} 
@@ -91,12 +99,46 @@ class Autobackup
         end
       end
 
-      %w{localdir}.each do |opt| # options which will receive an argument
+      # options which will receive an argument
+      %w{dir localdir}.each do |opt| 
         if arg == "--" + opt
           waiting = opt
+          next
         end
       end
 
+    end
+  end
+
+  def validate_conf
+    unless @conf['localdir']
+      STDERR.puts "@conf['localdir'] not set... ARGHH!!"
+      exit 1
+    end
+  end
+
+  def mount_network
+    return unless @conf['dir']
+    if @conf['dir'] =~ /^ssh:\/\/([^@]+@[^:]+:\S+)/
+      @network_fs = NetVolume.new( 
+        :dev => $1,
+        :fstype => "fuse.sshfs"
+      )
+      if @network_fs.mounted?
+        @network_previously_mounted = true 
+        @conf['localdir'] = @network_fs.mountpoint
+      else
+        if @conf['localdir']
+          @network_fs.mount(@conf['localdir']) 
+        else
+          @network_fs.mount
+          pp @network_fs
+          exit
+          @conf['localdir'] = @network_fs.mountpoint
+        end
+      end
+    else
+      @conf['localdir'] = @conf['dir']
     end
   end
 
@@ -190,7 +232,7 @@ class Autobackup
     puts "done."
   end
 
-  def create_remote_dir
+  def save_current_machine 
     dir = @conf['localdir'] + '/' + @current_machine.id
     Dir.mkdir(dir, 0700) 
     File.open(dir + "/" + Lshw_xml, "w") do |f|
@@ -260,7 +302,7 @@ class Autobackup
       # rightly, do not parse the xml again, edit data structure directly
       @current_machine.data[:name] = `hostname`.strip
       @remote_machine = @current_machine
-      create_remote_dir
+      save_current_machine
       puts "\nOk. Your machine details follow:\n\n"
       puts @current_machine.ui_print
     when 1

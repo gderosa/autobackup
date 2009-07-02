@@ -1,12 +1,13 @@
+require 'ftools'
+
 class Partition
 
   attr_reader :dev, :fstype, :kernel_id, :pn, :size, :start, :end, :mountpoint
 
-  Mount_base = "/mnt/target/"
+  Mount_base = "/mnt/target"
   Image_file_name = "img.gz"
   
   def initialize(args) 
-
     @dev = args[:dev]
     @pn = args[:pn]
     @fstype = args[:fstype]
@@ -44,7 +45,7 @@ class Partition
   end
 
   def mount(mountpoint="#{Mount_base}/#@dev")
-    Dir.mkdir(mountpoint) unless File.directory?(mountpoint)
+    File.makedirs(mountpoint) unless File.directory?(mountpoint)
     if system("mount #@dev #{mountpoint}") 
       @mountpoint = mountpoint
       return true
@@ -71,7 +72,7 @@ class Partition
     File.read("/proc/mounts").each_line do |line|
       if line =~ /^(\S+) (\S+) /
         begin
-          if @dev == File.readlink!($1)
+          if @dev == $1 or @dev == File.readlink!($1)
             mountpoint = $2 
           end
         rescue

@@ -426,9 +426,18 @@ class Autobackup
       print "\nUnavailable: no backup of this machine has been made!\n\n"
       return false
     end
+    # @current_disks vs @remote_disks
+    # auto select if perfect match (kernel_id) or just one disk on both sides
+    # TODO TODO TODO
+    return true 
   end
 
   def get_remote_disks
+    machinedir = @conf['localdir'] + "/" + @remote_machine.id
+    disks_datfile = machinedir + "/" + Disks_dat
+    if File.exists?(disks_datfile)
+      @remote_disks = Marshal::load(File.read(disks_datfile)) 
+    end
   end
 
 end

@@ -58,7 +58,8 @@ class Autobackup
 
     ui
 
-    @network_fs.umount unless @network_previously_mounted
+    
+    @network_fs.umount if @network_fs and not @network_previously_mounted
   end
 
   private
@@ -91,9 +92,10 @@ class Autobackup
         @conf[waiting] = arg
         waiting = nil
       end
-
-      %w{nocache noninteractive}.each do |opt| # options without arguments
-        if arg == "--" + opt
+      
+      # options without arguments
+      %w{nocache noninteractive}.each do |opt| 
+	if arg == "--" + opt
           @conf[opt] = true
           next 
         end
@@ -391,10 +393,16 @@ class Autobackup
       	  next if ["linux-swap", ""].include? part.fstype
 
           # if mounted, try to unmount, backup and remount
-          if ( mountpoint_save = part.mountpoint )
-            next if !part.umount # couldn't unmount -> skip
-          end
 
+          if ( mountpoint_save = part.mountpoint )
+            if !part.umount # couldn't unmount -> skip
+	      puts "\nCould not unmont partition" + 
+		" #{part.pn} (#{part.dev}) Type = #{part.fstype}"
+	      puts "--> Skipped"
+	      next
+	    end
+	  end
+          
       	  volumedir = diskdir + "/" + part.pn
 
       	  unless File.exists?(volumedir) 
@@ -402,11 +410,12 @@ class Autobackup
       	  end
 
       	  puts "\n  partition #{part.pn} (#{part.dev}) Type = #{part.fstype}"
-      	  if @conf['noninteractive'] or \
-      	    agree("Backup?") {|q| q.default="yes"}
+	  # do not ask, for now... 
+      	  #if @conf['noninteractive'] or \
+      	  #  agree("Backup?") {|q| q.default="yes"}
 
       	    part.backup(@conf, volumedir) 
-      	  end
+      	  #end
           part.mount(mountpoint_save) if mountpoint_save
       	end
       end

@@ -33,6 +33,7 @@ class Autobackup
     @machine_matches = []
     @remote_machine = nil                           # class Machine
     @current_disks = []
+    @remote_disks = []				    # volume images available
     @current_machine = nil                          # class Machine
     @current_machine_xmldata = ""                   # lshw -xml output
     @parted_output = ""                             # "@current_disks_textdata"
@@ -57,7 +58,6 @@ class Autobackup
     find_machine_matches                             # fills @machine_matches
 
     ui
-
     
     @network_fs.umount if @network_fs and not @network_previously_mounted
   end
@@ -134,8 +134,6 @@ class Autobackup
           @network_fs.mount(@conf['localdir']) 
         else
           @network_fs.mount
-          pp @network_fs
-          exit
           @conf['localdir'] = @network_fs.mountpoint
         end
       end
@@ -274,7 +272,7 @@ class Autobackup
 
   def find_machine_matches
     @machine_matches = []
-    min_percent_match = 0.2 # first filter
+    min_percent_match = 20 # first filter
     @remote_machines.each_value do |remote_machine|
       match = @current_machine.compare_to_w_score(remote_machine)
       if match[:percent_match] > min_percent_match
@@ -307,12 +305,16 @@ class Autobackup
       save_current_machine
       puts "\nOk. Your machine details follow:\n\n"
       puts @current_machine.ui_print
+
+      @remote_disks = []
     when 1
       @remote_machine = @remote_machines[@machine_matches[0][:id]]
       puts "Machine has been identified as"
       print \
         "(#{(@machine_matches[0][:percent_match]*100).truncate/100}% match) | "
       puts @remote_machine.ui_print
+
+      get_remote_disks # fills @remote_disks
     else  
       puts "I'm not sure of your machine identity. Choose one:"
       @machine_matches.each_index do |i|
@@ -340,6 +342,8 @@ class Autobackup
       end
       puts "\n You have chosen:"
       puts @remote_machine.ui_print
+
+      get_remote_disks # fills @remote_disks, once @remote_machine is set
     end
 
     puts
@@ -357,8 +361,7 @@ class Autobackup
       when '1'
         ui_backup
       when '2' 
-        puts "Not implemented yet"
-        return
+	choice = :__invalid__ unless ui_restore	  
       when '3'
         return
       end
@@ -410,17 +413,22 @@ class Autobackup
       	  end
 
       	  puts "\n  partition #{part.pn} (#{part.dev}) Type = #{part.fstype}"
-	  # do not ask, for now... 
-      	  #if @conf['noninteractive'] or \
-      	  #  agree("Backup?") {|q| q.default="yes"}
-
-      	    part.backup(@conf, volumedir) 
-      	  #end
+      	  part.backup(@conf, volumedir) 
           part.mount(mountpoint_save) if mountpoint_save
       	end
       end
     end
     puts
+  end
+
+  def ui_restore
+    if @remote_disks.length == 0
+      print "\nUnavailable: no backup of this machine has been made!\n\n"
+      return false
+    end
+  end
+
+  def get_remote_disks
   end
 
 end

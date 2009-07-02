@@ -69,12 +69,34 @@ class Autobackup
 
   def parse_opts
     # Do Repeat Yourself ;-P
+
+    aliases = {
+      "--dir" => "--localdir"
+    }
+
+    waiting = nil
     ARGV.each do |arg|
-      %w{nocache noninteractive}.each do |opt|
+
+      aliases.each_pair {|old, new| arg = new if arg == old} 
+
+      if (waiting) # option catched in the previous cycle now gets its argument
+        @conf[waiting] = arg
+        waiting = nil
+      end
+
+      %w{nocache noninteractive}.each do |opt| # options without arguments
         if arg == "--" + opt
-          @conf[opt] = true 
+          @conf[opt] = true
+          next 
         end
       end
+
+      %w{localdir}.each do |opt| # options which will receive an argument
+        if arg == "--" + opt
+          waiting = opt
+        end
+      end
+
     end
   end
 

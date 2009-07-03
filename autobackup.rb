@@ -33,7 +33,7 @@ class Autobackup
     @machine_matches = []
     @remote_machine = nil                           # class Machine
     @current_disks = []
-    @remote_disks = []				    # volume images available
+    @remote_disks = []            # volume images available
     @current_machine = nil                          # class Machine
     @current_machine_xmldata = ""                   # lshw -xml output
     @parted_output = ""                             # "@current_disks_textdata"
@@ -95,7 +95,7 @@ class Autobackup
       
       # options without arguments
       %w{nocache noninteractive}.each do |opt| 
-	if arg == "--" + opt
+        if arg == "--" + opt
           @conf[opt] = true
           next 
         end
@@ -110,6 +110,7 @@ class Autobackup
       end
 
     end
+
   end
 
   def validate_conf
@@ -366,7 +367,7 @@ class Autobackup
       when '1'
         ui_backup
       when '2' 
-	choice = :__invalid__ unless ui_restore	  
+  choice = :__invalid__ unless ui_restore    
       when '3'
         return
       end
@@ -385,45 +386,45 @@ class Autobackup
 
     @current_disks.each do |disk| 
       puts "\nBack up of #{disk.kernel_id}" + \
-	"\n (#{disk.dev}, size=#{disk.size})" # TODO: Disk#ui_print?
+  "\n (#{disk.dev}, size=#{disk.size})" # TODO: Disk#ui_print?
       
       if @conf['noninteractive'] or (agree("Proceed?") {|q| q.default="yes"})
 
-      	diskdir = machinedir + "/" + disk.kernel_id
+        diskdir = machinedir + "/" + disk.kernel_id
 
-      	begin
-      	  File.stat(diskdir)
-      	rescue Errno::ENOENT
-      	  Dir.mkdir(diskdir, 0700)   
-      	end
+        begin
+          File.stat(diskdir)
+        rescue Errno::ENOENT
+          Dir.mkdir(diskdir, 0700)   
+        end
 
-	disk.backup_mbr(diskdir)
-	disk.backup_ptable(diskdir)
+        disk.backup_mbr(diskdir)
+        disk.backup_ptable(diskdir)
 
-      	disk.volumes.each do |part|
-      	  next if ["linux-swap", ""].include? part.fstype
+        disk.volumes.each do |part|
+          next if ["linux-swap", ""].include? part.fstype
 
           # if mounted, try to unmount, backup and remount
 
           if ( mountpoint_save = part.mountpoint )
             if !part.umount # couldn't unmount -> skip
-	      puts "\nCould not unmont partition" + 
-		" #{part.pn} (#{part.dev}) Type = #{part.fstype}"
-	      puts "--> Skipped"
-	      next
-	    end
-	  end
+              puts "\nCould not unmont partition" + 
+                " #{part.pn} (#{part.dev}) Type = #{part.fstype}"
+              puts "--> Skipped"
+              next
+            end
+          end
           
-      	  volumedir = diskdir + "/" + part.pn
+          volumedir = diskdir + "/" + part.pn
 
-      	  unless File.exists?(volumedir) 
-      	    Dir.mkdir(volumedir, 0700)
-      	  end
+          unless File.exists?(volumedir) 
+            Dir.mkdir(volumedir, 0700)
+          end
 
-      	  puts "\n  partition #{part.pn} (#{part.dev}) Type = #{part.fstype}"
-      	  part.backup(@conf, volumedir) 
+          puts "\n  partition #{part.pn} (#{part.dev}) Type = #{part.fstype}"
+          part.backup(@conf, volumedir) 
           part.mount(mountpoint_save) if mountpoint_save
-      	end
+        end
       end
     end
     puts
@@ -437,29 +438,33 @@ class Autobackup
     # @current_disks vs @remote_disks
     @current_disks.each do |disk| 
       puts "\nRestore of #{disk.kernel_id}" + \
-	"\n (#{disk.dev}, size=#{disk.size})" 
+        "\n (#{disk.dev}, size=#{disk.size})" 
       if @conf['noninteractive'] or (agree("Proceed?") {|q| q.default="no"})
-	result = disk.restore(@remote_disks, @remote_machine, @conf['localdir'])
-	if result[:state] == :not_found_the_same_disk
-	  puts "Which of these disks you want to restore from?"
-	  @remote_disks.each_index do |i|
-	    rdisk = @remote_disks[i]
-	    puts "#{i+1}. #{rdisk.model} #{rdisk.size} \n (#{rdisk.kernel_id})"
-	  end
-	  puts (@remote_disks.length + 1).to_s + ". None."
-	  i = ask("?", Integer) { |q| q.in = 1..(@remote_disks.length + 1) } - 1
-	  result = disk.restore(
-	    @remote_disks[i], @remote_machine, @conf['localdir'])
-	end
-	if result[:state] == :no_ptable
-	  if agree("Partition tables do not match. Restore it [y/n]?") 
-	    disk.restore_ptable( # TODO: a more coherent API?
-	      @conf['localdir'] + "/" + 
-	      @remote_machine.id + "/" + 
-	      result[:disk].kernel_id) 
-	    disk.restore(result[:disk], @remote_machine, @conf['localdir'], :dont_check_ptable) 
-	  end
-	end
+        result = disk.restore(@remote_disks, @remote_machine, @conf['localdir'])
+        if result[:state] == :not_found_the_same_disk
+          puts "Which of these disks you want to restore from?"
+          @remote_disks.each_index do |i|
+            rdisk = @remote_disks[i]
+            puts "#{i+1}. #{rdisk.model} #{rdisk.size} \n (#{rdisk.kernel_id})"
+          end
+          puts (@remote_disks.length + 1).to_s + ". None."
+          i = ask("?", Integer) { |q| q.in = 1..(@remote_disks.length + 1) } - 1
+          result = disk.restore(
+            @remote_disks[i], @remote_machine, @conf['localdir'])
+        end
+        if result[:state] == :no_ptable
+          if agree("Partition tables do not match. Restore it [y/n]?") 
+            disk.restore_ptable( # TODO: a more coherent API?
+            @conf['localdir'] + "/" + 
+            @remote_machine.id + "/" + 
+            result[:disk].kernel_id) 
+            disk.restore(
+              result[:disk], 
+              @remote_machine, 
+              @conf['localdir'], 
+              :dont_check_ptable) 
+          end
+        end
       end
     end 
     return true 

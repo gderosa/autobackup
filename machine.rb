@@ -238,15 +238,15 @@ class Machine
             lvolume_hash                  = {}
             lvolume_hash[:desc]           = lvol.elements["description"].text
             lvolume_hash[:physid]         = lvol.elements["physid"].text
-	    begin
+            begin
               lvolume_hash[:logicalname]  = lvol.elements["logicalname[1]"].text
-	    rescue
-	      begin
-	        lvolume_hash[:logicalname]= lvol.elements["logicalname"].text
-	      rescue
-		lvolume_hash[:logicalname]= nil
-	      end
-	    end
+            rescue
+              begin
+                lvolume_hash[:logicalname]= lvol.elements["logicalname"].text
+              rescue
+                lvolume_hash[:logicalname]= nil
+              end
+            end
             begin
               lvolume_hash[:mountpoint]   = lvol.elements["logicalname[2]"].text
             rescue

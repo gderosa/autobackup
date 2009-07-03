@@ -38,18 +38,18 @@ class Disk
 
     if disks.class == Array # you must figure out which disk to restore from
       disks.each do |disk|
-	if @kernel_id == disk.kernel_id
-	  return restore(disk, machine, dir) 
-	end
-      end	
+        if @kernel_id == disk.kernel_id
+          return restore(disk, machine, dir) 
+        end
+      end  
       return {:disk => nil, :state => :not_found_the_same_disk}
     end
 
-    if disks.class != Disk		    
+    if disks.class != Disk        
       raise TypeError, "``disks'' should be of Disk class, not #{disks.class}"
     end
 
-    disk = disks				# just one disk
+    disk = disks        # just one disk
 
     return {:disk => disk, :state => :no_ptable} \
       unless (compare_ptable(disk) or opts.include? :dont_check_ptable)
@@ -67,9 +67,9 @@ class Disk
   def compare_ptable(disk)
 
     relation = proc do |vol1, vol2|
-      vol1.size	  == vol2.size	and
+      vol1.size   == vol2.size  and
       vol1.fstype == vol2.fstype and
-      vol1.pn	  == vol2.pn
+      vol1.pn     == vol2.pn
     end
 
     return disk.volumes.length == \

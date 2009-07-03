@@ -348,7 +348,8 @@ class Autobackup
     end
 
     # TODO: if a remote machine match has been found, should I overwrite
-    # remote data with current one? Consequences?
+    # remote data with current one, so that the next time I will get
+    # a 100% match? Consequences?
 
     puts
     choice = ""

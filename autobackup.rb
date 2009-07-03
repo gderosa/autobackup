@@ -453,11 +453,27 @@ class Autobackup
             @remote_disks[i], @remote_machine, @conf['localdir'])
         end
         if result[:state] == :no_ptable
-          if agree("Partition tables do not match. Restore it [y/n]?") 
+          restore_ptable? = 
+            agree("Partition tables do not match. Restore it [y/n]?")
+          if restore_ptable?
+            restore_boot? = agree("Restore the Boot Sector too?") do |q|
+              q.default="no"
+            end
+          end
+
+          if restore_ptable?
+
+            if restore_boot?
+              disk.restore_mbr( 
+                @conf['localdir'] + "/" + 
+                @remote_machine.id + "/" + 
+                result[:disk].kernel_id) 
+            end
+
             disk.restore_ptable( # TODO: a more coherent API?
-            @conf['localdir'] + "/" + 
-            @remote_machine.id + "/" + 
-            result[:disk].kernel_id) 
+              @conf['localdir'] + "/" + 
+              @remote_machine.id + "/" + 
+              result[:disk].kernel_id) 
             disk.restore(
               result[:disk], 
               @remote_machine, 

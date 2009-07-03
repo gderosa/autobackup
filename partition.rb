@@ -18,7 +18,7 @@ class Partition
     @mountpoint = find_mountpoint
   end
 
-  def backup(conf, dir)
+  def backup(dir)
     partimage = "partimage -g0 -c -V0 -d -o -z0 -Bx=y save #@dev stdout"
     ntfsclone = "ntfsclone --rescue -s -O - #@dev"
     gzip = "gzip --fast -c"
@@ -46,6 +46,29 @@ class Partition
     end
 
   end
+
+  def restore(dir)
+    partimage = "partimage -g0 -V0 -d -Bx=y restore #@dev stdin"
+    ntfsclone = "ntfsclone -r -O #@dev -"
+    img_file = dir + "/" + Image_file_name
+
+    cmd = case @fstype
+    
+    when "vfat", "fat", "fat32", "fat16", "msdos", "msdosfs", \
+      "ext2", "ext3", "xfs", "jsf", "reiserfs"
+      "gunzip -c #{img_file} | " + partimage 
+
+    when "ntfs"
+      "gunzip -c #{img_file} | " + ntfsclone
+
+    else
+      return
+
+    end
+
+    system(cmd)
+  end
+ 
 
   def mounted?
     return true if @mountpoint

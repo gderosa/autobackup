@@ -58,23 +58,22 @@ class Disk
 
     diskdir = machinedir + "/" + disk.kernel_id
 
-    puts "OK I'M DOING THE ACTUAL RESTORE ;-)" 
+    @volumes.each do |vol| 
+      vol.restore(diskdir + "/" + vol.pn.to_s) 
+    end
 
     return {:disk => disk, :state => :ok}
 
   end
 
   def compare_ptable(disk)
-
     relation = proc do |vol1, vol2|
       vol1.size   == vol2.size  and
       vol1.fstype == vol2.fstype and
       vol1.pn     == vol2.pn
     end
-
     return disk.volumes.length == \
       disk.volumes.how_many_in_common_rel(@volumes, relation)
-
   end
 
 end

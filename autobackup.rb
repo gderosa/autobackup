@@ -168,7 +168,8 @@ class Autobackup
     # NOTE: WARNING: older versions of GNU parted do not support -m option!
     # Upgrade to a newer one if necessary.
     pipe = IO.popen("LANG=C && parted -m", "r+")
-    pipe.puts "unit b"
+    #pipe.puts "unit b" # let's try to keep it human readable!
+      # another advantage is "fuzzy" comparison between partition sizes
     pipe.puts "print all"
     pipe.puts "quit"
     pipe.close_write
@@ -290,8 +291,8 @@ class Autobackup
     puts ""
     case @machine_matches.length
     when 0
-      puts "No matching machine found in the database: creating a new entry."
-      print "Choose a name for this computer: "
+      puts "This is the first time you backup this computer."
+      print "Choose a name for it: "
       while `hostname #{$stdin.gets.strip} 2>&1`.length > 0 
         print "Invalid hostname. Choose another one: "
       end
@@ -311,7 +312,7 @@ class Autobackup
       @remote_machine = @remote_machines[@machine_matches[0][:id]]
       puts "Machine has been identified as"
       print \
-        "(#{(@machine_matches[0][:percent_match]*100).truncate/100}% match) | "
+        "(#{@machine_matches[0][:percent_match].round}% match) | "
       puts @remote_machine.ui_print
 
       get_remote_disks # fills @remote_disks
@@ -380,7 +381,7 @@ class Autobackup
 
     @current_disks.each do |disk| 
       puts "\nBack up of #{disk.kernel_id}" + \
-	"\n (#{disk.dev}, size=#{disk.size})"
+	"\n (#{disk.dev}, size=#{disk.size})" # TODO: Disk#ui_print?
       
       if @conf['noninteractive'] or (agree("Proceed?") {|q| q.default="yes"})
 
@@ -391,6 +392,9 @@ class Autobackup
       	rescue Errno::ENOENT
       	  Dir.mkdir(diskdir, 0700)   
       	end
+
+	disk.backup_mbr(diskdir)
+	disk.backup_ptable(diskdir)
 
       	disk.volumes.each do |part|
       	  next if ["linux-swap", ""].include? part.fstype
@@ -428,7 +432,13 @@ class Autobackup
     end
     # @current_disks vs @remote_disks
     # auto select if perfect match (kernel_id) or just one disk on both sides
-    # TODO TODO TODO
+    @current_disks.each do |disk| 
+      puts "\nRestore of #{disk.kernel_id}" + \
+	"\n (#{disk.dev}, size=#{disk.size})" # TODO: Disk#ui_print?
+      if @conf['noninteractive'] or (agree("Proceed?") {|q| q.default="yes"})
+	disk.restore(@remote_disks, @remote_machine, @conf['localdir'])
+      end
+    end 
     return true 
   end
 

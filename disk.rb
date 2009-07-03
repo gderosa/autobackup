@@ -16,11 +16,11 @@ class Disk
   end
 
   def backup_mbr(dir)
-    system "dd if=#{@dev} of=#{dir}/mbr.bin bs=512 count=1 > /dev/null"
+    system "dd if=#{@dev} of=#{dir}/mbr.bin bs=512 count=1 &> /dev/null"
   end
 
   def restore_mbr(dir)
-    system "dd if=#{dir}/mbr.bin of=#{@dev} bs=512 cout=1 > /dev/null"
+    system "dd if=#{dir}/mbr.bin of=#{@dev} bs=512 count=1 &> /dev/null"
   end
 
   def backup_ptable(dir)
@@ -32,7 +32,9 @@ class Disk
   end
 
   def restore(disks, machine, dir)
-    return false unless disks
+    # @ disks may be an array of Disk objects or just *a* Disk object
+    
+    raise TypeError, "disks cannot be ``nil'' or ``false''" unless disks
 
     if disks.class == Array # you must figure out which disk to restore from
       disks.each do |disk|
@@ -40,15 +42,26 @@ class Disk
 	  return restore(disk, machine, dir) 
 	end
       end	
-      return false
+      return :more_than_one
     end
-    
-    return false if disks.class != Disk # no duck typing here ;-/
 
-    backup_disk = disks			# just one disk
+    if disks.class != Disk		    
+      raise TypeError, "``disks'' should be of Disk class, not #{disks.class}"
+    end
 
-    machinedir = dir + machine.id    
+    disk = disks				# just one disk
+
+    return :no_ptable unless compare_ptable(disk) 
+
+    machinedir = dir + "/" + machine.id    
+
+    diskdir = machinedir + "/" + disk.kernel_id
 
   end
+
+  def compare_ptable(disk)
+    
+  end
+
 end
 

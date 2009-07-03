@@ -434,9 +434,11 @@ class Autobackup
     # auto select if perfect match (kernel_id) or just one disk on both sides
     @current_disks.each do |disk| 
       puts "\nRestore of #{disk.kernel_id}" + \
-	"\n (#{disk.dev}, size=#{disk.size})" # TODO: Disk#ui_print?
+	"\n (#{disk.dev}, size=#{disk.size})" 
       if @conf['noninteractive'] or (agree("Proceed?") {|q| q.default="yes"})
-	disk.restore(@remote_disks, @remote_machine, @conf['localdir'])
+	result = disk.restore(@remote_disks, @remote_machine, @conf['localdir'])
+	# TODO: handle result == :more_than_one 
+	# TODO: handle result == :no_ptable
       end
     end 
     return true 

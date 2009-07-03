@@ -27,14 +27,17 @@ class Partition
     dest_file_partial = dest_file + ".partial"
 
     cmd = case @fstype
+    
     when "vfat", "fat", "fat32", "fat16", "msdos", "msdosfs", \
       "ext2", "ext3", "xfs", "jsf", "reiserfs"
-
       partimage + " | " + gzip + " > " + dest_file_partial
+
     when "ntfs"
       ntfsclone + " | " + gzip + " > " + dest_file_partial
+
     else
       return
+
     end
 
     # rename dest_file.partial to dest_file only on success

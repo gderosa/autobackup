@@ -31,7 +31,7 @@ class Disk
     system "sfdisk #{@dev} < #{dir}/sfdisk-d"
   end
 
-  def restore(disks, machine, dir)
+  def restore(disks, machine, dir, *opts)
     # @ disks may be an array of Disk objects or just *a* Disk object
     
     raise TypeError, "disks cannot be ``nil'' or ``false''" unless disks
@@ -42,7 +42,7 @@ class Disk
 	  return restore(disk, machine, dir) 
 	end
       end	
-      return :more_than_one
+      return {:disk => nil, :state => :not_found_the_same_disk}
     end
 
     if disks.class != Disk		    
@@ -51,7 +51,8 @@ class Disk
 
     disk = disks				# just one disk
 
-    return :no_ptable unless compare_ptable(disk) 
+    return {:disk => disk, :state => :no_ptable} \
+      unless (compare_ptable(disk) or opts.include? :dont_check_ptable)
 
     machinedir = dir + "/" + machine.id    
 
@@ -60,7 +61,7 @@ class Disk
   end
 
   def compare_ptable(disk)
-    
+    return false     
   end
 
 end

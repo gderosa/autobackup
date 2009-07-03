@@ -431,14 +431,31 @@ class Autobackup
       return false
     end
     # @current_disks vs @remote_disks
-    # auto select if perfect match (kernel_id) or just one disk on both sides
     @current_disks.each do |disk| 
       puts "\nRestore of #{disk.kernel_id}" + \
 	"\n (#{disk.dev}, size=#{disk.size})" 
-      if @conf['noninteractive'] or (agree("Proceed?") {|q| q.default="yes"})
+      if @conf['noninteractive'] or (agree("Proceed?") {|q| q.default="no"})
 	result = disk.restore(@remote_disks, @remote_machine, @conf['localdir'])
-	# TODO: handle result == :more_than_one 
-	# TODO: handle result == :no_ptable
+	if result[:state] == :not_found_the_same_disk
+	  puts "Which of these disks you want to restore from?"
+	  @remote_disks.each_index do |i|
+	    rdisk = @remote_disks[i]
+	    puts "#{i+1}. #{rdisk.model} #{rdisk.size} \n (#{rdisk.kernel_id})"
+	  end
+	  puts (@remote_disks.length + 1).to_s + ". None."
+	  i = ask("?", Integer) { |q| q.in = 1..(@remote_disks.length + 1) } - 1
+	  result = disk.restore(
+	    @remote_disks[i], @remote_machine, @conf['localdir'])
+	end
+	if result[:state] == :no_ptable
+	  if agree("Partition tables do not match. Restore it [y/n]?") 
+	    disk.restore_ptable( # TODO: a more coherent API?
+	      @conf['localdir'] + "/" + 
+	      @remote_machine.id + "/" + 
+	      result[:disk].kernel_id) 
+	    disk.restore(result[:disk], @remote_machine, @conf['localdir'], :dont_check_ptable) 
+	  end
+	end
       end
     end 
     return true 

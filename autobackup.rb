@@ -347,6 +347,9 @@ class Autobackup
       get_remote_disks # fills @remote_disks, once @remote_machine is set
     end
 
+    # TODO: if a remote machine match has been found, should I overwrite
+    # remote data with current one? Consequences?
+
     puts
     choice = ""
     while not %w{1 2 3}.include? choice

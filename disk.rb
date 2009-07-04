@@ -28,7 +28,7 @@ class Disk
   end
 
   def restore_ptable(dir)
-    system "sfdisk #{@dev} < #{dir}/sfdisk-d # &> /dev/null"
+    system "sfdisk #{@dev} < #{dir}/sfdisk-d &> /dev/null"
   end
 
   def restore(disks, machine, dir, *opts)

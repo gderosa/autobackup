@@ -59,6 +59,8 @@ class Disk
     diskdir = machinedir + "/" + disk.kernel_id
 
     @volumes.each do |vol|
+      mountpoint_save = nil
+      vol.umount if (mountpoint_save = vol.mountpoint) 
       remote_volume = disk.volumes.detect{|x|x.pn==vol.pn}
       if remote_volume.respond_to? "fstype"
         vol.restore(
@@ -66,6 +68,7 @@ class Disk
           remote_volume.fstype
         ) 
       end
+      vol.mount(mountpoint_save) if mountpoint_save
     end
 
     return {:disk => disk, :state => :ok}

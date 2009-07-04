@@ -483,7 +483,6 @@ class Autobackup
                 @remote_machine.id + "/" + 
                 result[:disk].kernel_id) 
             end
-
             disk.restore_ptable( # TODO: a more coherent API?
               @conf['localdir'] + "/" + 
               @remote_machine.id + "/" + 
@@ -497,6 +496,7 @@ class Autobackup
               :dont_check_ptable
             ) 
           end
+
         end
       end
     end 

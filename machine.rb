@@ -273,7 +273,6 @@ class Machine
 
   def compare_to(other_machine) 
     same_components = {
-
       # did not use boolean since we might need :partly or :maybe ;-)
       :uuid    => :no,
       :serial  => :no,

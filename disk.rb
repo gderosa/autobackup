@@ -20,7 +20,7 @@ class Disk
   end
 
   def restore_mbr(dir)
-    system "dd if=#{dir}/mbr.bin of=#{@dev} bs=512 count=1 &> /dev/null"
+    `dd if=#{dir}/mbr.bin of=#{@dev} bs=512 count=1 2> /dev/null`
   end
 
   def backup_ptable(dir)
@@ -28,7 +28,7 @@ class Disk
   end
 
   def restore_ptable(dir)
-    system "sfdisk #{@dev} < #{dir}/sfdisk-d &> /dev/null"
+    `sfdisk -f --no-reread #{@dev} < #{dir}/sfdisk-d 2> /dev/null`
   end
 
   def restore(disks, machine, dir, *opts)

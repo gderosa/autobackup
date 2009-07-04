@@ -28,7 +28,7 @@ class Disk
   end
 
   def restore_ptable(dir)
-    system "sfdisk #{@dev} < #{dir}/sfdisk-d"
+    system "sfdisk #{@dev} < #{dir}/sfdisk-d # &> /dev/null"
   end
 
   def restore(disks, machine, dir, *opts)
@@ -58,14 +58,27 @@ class Disk
 
     diskdir = machinedir + "/" + disk.kernel_id
 
-    @volumes.each do |vol| 
-      vol.restore(diskdir + "/" + vol.pn.to_s) 
+    @volumes.each do |vol|
+      remote_volume = disk.volumes.detect{|x|x.pn==vol.pn}
+      if remote_volume.respond_to? "fstype"
+        vol.restore(
+          diskdir + "/" + vol.pn.to_s,
+          remote_volume.fstype
+        ) 
+      end
     end
 
     return {:disk => disk, :state => :ok}
 
   end
 
+  # NOTE: since Disk objects content is based on GNU parted output,
+  # actual FS content is required...
+  # TODO: part table should be grabbed from sfdisk, while just the
+  # "real fs type" should be taken from parted; maybe fs type
+  # should not be considered in compare_ptable; for now, :dont_check_ptable
+  # option in Disk#restore has to be used if part. table has just been restored.
+  
   def compare_ptable(disk)
     relation = proc do |vol1, vol2|
       vol1.size   == vol2.size  and
@@ -73,7 +86,7 @@ class Disk
       vol1.pn     == vol2.pn
     end
     return disk.volumes.length == \
-      disk.volumes.how_many_in_common_rel(@volumes, relation)
+      disk.volumes.how_many_in_common_rel(@volumes, relation) 
   end
 
 end

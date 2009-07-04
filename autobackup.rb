@@ -161,6 +161,7 @@ class Autobackup
   end
 
   def detect_disks
+    @current_disks = []
     print "Finding disk(s) and partitions... "
     $stdout.flush
     disks_tmp_ary = []
@@ -180,8 +181,21 @@ class Autobackup
       line.gsub!(/\(parted\)/,"")
       line.gsub!(/\r/,"")
       @parted_output += line
+      # totally compromised mbr/part.table
+      if line =~ /err.*(\/dev\/[a-z]+)[:\s]/i or
+        line =~ /(\/dev\/[a-z]+)[:\s].*unrecognized disk label/i
+
+        disk_tmp_dev = $1
+        disk_tmp_hash = {
+          :dev => disk_tmp_dev,
+          :size => 0,
+          :volumes => [],
+          :kernel_id => nil,
+          :model => nil
+        }
+        disks_tmp_ary << disk_tmp_hash
       # disk found:
-      if line =~ /^(\/dev\/[^:]+):(.*):(.*):(.*):(.*):(.*):(.*);/ 
+      elsif line =~ /^(\/dev\/[^:]+):(.*):(.*):(.*):(.*):(.*):(.*);/ 
         if $3 == "dm"
           disk_tmp_dev = nil  # esclude device mapper
         else
@@ -197,7 +211,7 @@ class Autobackup
         end
       end
       # partition:
-      if line =~ /^(\d+):(.*):(.*):(.*):(.+):(.*):(.*);/ and disk_tmp_dev
+      if line =~ /^(\d+):(.*):(.*):(.*):(.*):(.*):(.*);/ and disk_tmp_dev
         pn  = $1
         dev = disk_tmp_dev + pn
         fstype = $5
@@ -422,7 +436,7 @@ class Autobackup
           end
 
           puts "\n  partition #{part.pn} (#{part.dev}) Type = #{part.fstype}"
-          part.backup(@conf, volumedir) 
+          part.backup(volumedir) 
           part.mount(mountpoint_save) if mountpoint_save
         end
       end
@@ -435,8 +449,8 @@ class Autobackup
       print "\nUnavailable: no backup of this machine has been made!\n\n"
       return false
     end
-    # @current_disks vs @remote_disks
-    @current_disks.each do |disk| 
+
+    @current_disks.clone.each_with_index do |disk, disk_index| 
       puts "\nRestore of #{disk.kernel_id}" + \
         "\n (#{disk.dev}, size=#{disk.size})" 
       if @conf['noninteractive'] or (agree("Proceed?") {|q| q.default="no"})
@@ -453,17 +467,17 @@ class Autobackup
             @remote_disks[i], @remote_machine, @conf['localdir'])
         end
         if result[:state] == :no_ptable
-          restore_ptable? = 
+          restore_ptable = \
             agree("Partition tables do not match. Restore it [y/n]?")
-          if restore_ptable?
-            restore_boot? = agree("Restore the Boot Sector too?") do |q|
-              q.default="no"
+          if restore_ptable
+            restore_boot = agree("Restore the Boot Sector too?") do |q|
+              q.default = "no"
             end
           end
 
-          if restore_ptable?
+          if restore_ptable
 
-            if restore_boot?
+            if restore_boot
               disk.restore_mbr( 
                 @conf['localdir'] + "/" + 
                 @remote_machine.id + "/" + 
@@ -474,11 +488,14 @@ class Autobackup
               @conf['localdir'] + "/" + 
               @remote_machine.id + "/" + 
               result[:disk].kernel_id) 
+            detect_disks                      # re-run...
+            disk = @current_disks[disk_index] # ...and update
             disk.restore(
               result[:disk], 
               @remote_machine, 
-              @conf['localdir'], 
-              :dont_check_ptable) 
+              @conf['localdir'],
+              :dont_check_ptable
+            ) 
           end
         end
       end

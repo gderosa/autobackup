@@ -47,12 +47,12 @@ class Partition
 
   end
 
-  def restore(dir)
+  def restore(dir, fstype)
     partimage = "partimage -g0 -V0 -d -Bx=y restore #@dev stdin"
     ntfsclone = "ntfsclone -r -O #@dev -"
     img_file = dir + "/" + Image_file_name
 
-    cmd = case @fstype
+    cmd = case fstype
     
     when "vfat", "fat", "fat32", "fat16", "msdos", "msdosfs", \
       "ext2", "ext3", "xfs", "jsf", "reiserfs"

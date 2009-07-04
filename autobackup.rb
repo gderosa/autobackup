@@ -381,7 +381,7 @@ class Autobackup
       when '1'
         ui_backup
       when '2' 
-  choice = :__invalid__ unless ui_restore    
+        choice = :__invalid__ unless ui_restore    
       when '3'
         return
       end
@@ -400,7 +400,7 @@ class Autobackup
 
     @current_disks.each do |disk| 
       puts "\nBack up of #{disk.kernel_id}" + \
-  "\n (#{disk.dev}, size=#{disk.size})" # TODO: Disk#ui_print?
+        "\n (#{disk.dev}, size=#{disk.size})" # TODO: Disk#ui_print?
       
       if @conf['noninteractive'] or (agree("Proceed?") {|q| q.default="yes"})
 

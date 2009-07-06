@@ -240,9 +240,9 @@ class Autobackup
     puts "done."
   end
 
-  def save_current_machine 
+  def save_current_machine
     dir = @conf['localdir'] + '/' + @current_machine.id
-    Dir.mkdir(dir, 0700) 
+    Dir.mkdir(dir, 0700) unless File.directory?(dir)
     File.open(dir + "/" + Lshw_xml, "w") do |f|
       f.puts @current_machine_xmldata
     end      
@@ -354,10 +354,6 @@ class Autobackup
       get_remote_disks # fills @remote_disks, once @remote_machine is set
     end
 
-    # TODO: if a remote machine match has been found, should I overwrite
-    # remote data with current one, so that the next time I will get
-    # a 100% match? Consequences?
-
     puts
     choice = ""
     while not %w{1 2 3}.include? choice
@@ -381,7 +377,10 @@ class Autobackup
   end
 
   def ui_backup
-    machinedir = @conf['localdir'] + "/" + @remote_machine.id
+    machine_id = @current_machine.id = @remote_machine.id
+    save_current_machine # overwrite old hardware data
+
+    machinedir = @conf['localdir'] + "/" + machine_id
 
     File.open(machinedir + "/" + Parted_txt, "w") do |f|
       f.puts @parted_output

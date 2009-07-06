@@ -12,6 +12,7 @@ require 'hash'
 class Machine
 
   attr_reader :data, :id
+  attr_writer :id
 
   def initialize(args)
     @id = ( args[:id] or UUID::new.generate )

@@ -44,21 +44,13 @@ class Autobackup
   def run
     read_conf                                       # sets @conf
     parse_opts                                      # overwrite @conf as needed
-
     mount_network
-
     validate_conf                                   # check @conf is valid
-
     detect_hardware                                 # sets @current_machine
-
     detect_disks                                    # sets @current_disks 
-
     get_remote_machines  # retrieve Machine objects and fills @remote_machines
-
     find_machine_matches                             # fills @machine_matches
-
     ui
-    
     @network_fs.umount if @network_fs and not @network_previously_mounted
   end
 
@@ -306,8 +298,8 @@ class Autobackup
     puts ""
     case @machine_matches.length
     when 0
-      puts "This is the first time you backup this computer."
-      print "Choose a name for it: "
+      print "This is the first time you backup this computer. "
+      print "Choose a name for it:\n"
       while `hostname #{$stdin.gets.strip} 2>&1`.length > 0 
         print "Invalid hostname. Choose another one: "
       end
@@ -476,7 +468,7 @@ class Autobackup
           end
 
           if restore_ptable
-
+            
             if restore_boot
               disk.restore_mbr( 
                 @conf['localdir'] + "/" + 
@@ -493,8 +485,8 @@ class Autobackup
               result[:disk], 
               @remote_machine, 
               @conf['localdir'],
-              :dont_check_ptable
-            ) 
+              :dont_check_ptable) 
+
           end
 
         end

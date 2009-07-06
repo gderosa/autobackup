@@ -52,6 +52,8 @@ class Partition
     ntfsclone = "ntfsclone -r -O #@dev -"
     img_file = dir + "/" + Image_file_name
 
+    File.stat img_file # raises an exception if not found
+
     cmd = case fstype
     
     when "vfat", "fat", "fat32", "fat16", "msdos", "msdosfs", \

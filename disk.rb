@@ -63,10 +63,15 @@ class Disk
       vol.umount if (mountpoint_save = vol.mountpoint) 
       remote_volume = disk.volumes.detect{|x|x.pn==vol.pn}
       if remote_volume.respond_to? "fstype"
-        vol.restore(
-          diskdir + "/" + vol.pn.to_s,
-          remote_volume.fstype
-        ) 
+        begin
+          vol.restore(
+            diskdir + "/" + vol.pn.to_s,
+            remote_volume.fstype
+          ) 
+        rescue Errno::ENOENT
+          STDERR.puts "\nCouldn't restore partition no. #{vol.pn}: image file not found"
+          STDERR.puts "(if a backup was made, maybe it was not completed)"
+        end
       end
       vol.mount(mountpoint_save) if mountpoint_save
     end

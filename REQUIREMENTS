@@ -1,0 +1,27 @@
+A GNU/Linux distribution: a live cd/usbdisk/PXE image is recommended
+  -- hard disks partitions must be unmounted to be backed-up/restored
+
+Linux kernel version >= 2.6
+
+dd: most likely present in any Unix-like OS
+
+GNU parted: latest stable release recommended, it must support -m switch
+
+sfdisk: util-linux-ng 2.13.1 was used under Ubuntu 8.04 and Debian 5.0
+
+ntfsclone: v2.0.0 and libntfs 10:0:0 were used
+
+partimage: v0.6.7 was used
+
+SSHFS: http://fuse.sourceforge.net/sshfs.html (optional) 
+
+ruby >= 1.8
+
+Ruby 'require's (install gems or your distro's packages as needed):
+	require 'rubygems'
+	require 'uuid'
+	require 'highline/import'
+	require 'rexml/document'
+
+Feel free to send a patch etc. if I missed something... :)
+

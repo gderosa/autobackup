@@ -1,10 +1,10 @@
 class Array
 
   def how_many_in_common(other_array)
-    return self.how_many_in_common_rel(other_array, proc{|x,y|x==y})
+    return self.how_many_in_common_by(other_array, proc{|x,y|x==y})
   end
 
-  def how_many_in_common_rel(other_array, rel) 
+  def how_many_in_common_by(other_array, rel) 
     # rel is a general equivalence relation (a function pointer) 
     n = 0
     tmp = self.clone

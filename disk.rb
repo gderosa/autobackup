@@ -94,7 +94,7 @@ class Disk
       vol1.pn     == vol2.pn
     end
     return disk.volumes.length == \
-      disk.volumes.how_many_in_common_rel(@volumes, relation) 
+      disk.volumes.how_many_in_common_by(@volumes, relation) 
   end
 
 end

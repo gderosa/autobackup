@@ -3,7 +3,6 @@
 # License::   General Public License, version 2
 
 require 'uuid'
-require 'net/sftp'
 require 'rexml/document'
 
 require 'array'
@@ -12,7 +11,7 @@ require 'hash'
 class Machine
 
   attr_reader :data, :id
-  attr_writer :id
+  attr_writer :id	  
 
   def initialize(args)
     @id = ( args[:id] or UUID::new.generate )
@@ -33,7 +32,7 @@ class Machine
       # Update cache (i.e. datfile) if it's out of date
       if \
         (File.stat(xmlfile).mtime.to_i > File.stat(datfile).mtime.to_i) or \
-        nocache or
+        nocache or \
         (not File.readable?(datfile))  
 
         @data = Machine::parse_lshw_xml(File.read(xmlfile))
@@ -329,20 +328,20 @@ class Machine
 
     # RAM
       # TODO: handle different units (e.g. "bytes" and "kilobytes") (rare)
-      # calling Array.how_many_in_common_rel and creating a suitable method
+      # calling Array.how_many_in_common_by and creating a suitable method
     same_components[:ram] = \
       @data[:ram].how_many_in_common(other_machine.data[:ram])
 
     # NET
     same_components[:net] = \
-      @data[:net].how_many_in_common_rel(
+      @data[:net].how_many_in_common_by(
         other_machine.data[:net], 
         proc{|a,b| a[:mac] == b[:mac]} 
       ) 
 
     # DISKS
     same_components[:disks] = \
-      @data[:disks].how_many_in_common_rel(
+      @data[:disks].how_many_in_common_by(
         other_machine.data[:disks], 
         proc{|a,b| a[:serial] == b[:serial]} 
       ) 

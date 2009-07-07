@@ -7,8 +7,6 @@
 require 'pp' # DEBUG
 
 require 'rubygems'
-require 'net/ssh'
-require 'net/sftp'
 require 'uuid'
 require 'highline/import'
 

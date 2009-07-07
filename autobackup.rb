@@ -388,6 +388,9 @@ class Autobackup
     end
 
     @current_disks.each do |disk| 
+      next if (not disk.kernel_id) or disk.kernel_id.length < 1
+        # to avoid cdroms etc.
+
       puts "\nBack up of #{disk.kernel_id}" + \
         "\n (#{disk.dev}, size=#{disk.size})" # TODO: Disk#ui_print?
       
@@ -440,6 +443,8 @@ class Autobackup
     end
 
     @current_disks.clone.each_with_index do |disk, disk_index| 
+      next if (not disk.kernel_id) or disk.kernel_id.length < 1
+        # to avoid cdroms etc.
       puts "\nRestore of #{disk.kernel_id}" + \
         "\n (#{disk.dev}, size=#{disk.size})" 
       if @conf['noninteractive'] or (agree("Proceed?") {|q| q.default="no"})

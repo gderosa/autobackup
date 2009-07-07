@@ -273,8 +273,8 @@ class Machine
 
   def compare_to(other_machine) 
     same_components = {
-      # be fuzzy, be happy!    
-      # did not use boolean since we might need :partly, :maybe or :undef ;-)
+      # Be fuzzy, be happy!    
+      # Do not use boolean since we might need :partly, :maybe or :undef ;-)
       :uuid    => :no,
       :serial  => :no,
       :mobo    => :no,
@@ -284,6 +284,15 @@ class Machine
       :disks   => 0, 
       :net     => 0 
     }
+
+    # Some @data hash values are set to nil by ckBogus method (see below)
+
+    # If two machines have both bogus serial numbers, uuid etc.
+    # we cannot say they have the same serial no., neither the contrary... 
+    # we just don't know! So, points are subtracted to the numerator AND to
+    # the denominator in order to get a 100% match for a machine with
+    # bogus serial number with itself... The serial no. is simply ignored,
+    # and only other hardware proprerties are used to compute the match.
     
     # CORE
     if @data[:uuid] == nil and other_machine.data[:uuid] == nil

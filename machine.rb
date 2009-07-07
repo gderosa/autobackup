@@ -273,7 +273,8 @@ class Machine
 
   def compare_to(other_machine) 
     same_components = {
-      # did not use boolean since we might need :partly or :maybe ;-)
+      # be fuzzy, be happy!    
+      # did not use boolean since we might need :partly, :maybe or :undef ;-)
       :uuid    => :no,
       :serial  => :no,
       :mobo    => :no,
@@ -285,19 +286,27 @@ class Machine
     }
     
     # CORE
-    if @data[:uuid] == nil or other_machine.data[:uuid] == nil
-     same_components[:uuid] = :no
+    if @data[:uuid] == nil and other_machine.data[:uuid] == nil
+     same_components[:uuid] = :undef
     else
-      if @data[:uuid].casecmp( other_machine.data[:uuid] ) == 0
-        same_components[:uuid] = :yes
+      begin
+        if @data[:uuid].casecmp( other_machine.data[:uuid] ) == 0
+          same_components[:uuid] = :yes
+        end
+      rescue NoMethodError # only one of the two is nil # TODO: xor operator?
+        same_components[:uuid] = :no
       end
     end
-    if @data[:serial] == nil or other_machine.data[:serial] == nil
-     same_components[:serial] = :no
+    if @data[:serial] == nil and other_machine.data[:serial] == nil
+     same_components[:serial] = :undef
     else
-      if @data[:serial].casecmp( other_machine.data[:serial] ) == 0
-        same_components[:serial] = :yes
-      end
+      begin
+        if @data[:serial].casecmp( other_machine.data[:serial] ) == 0
+          same_components[:serial] = :yes
+        end
+      rescue NoMethodError # only one of the two is nil # TODO: xor operator?
+        same_components[:serial] = :no
+      end 
     end
 
     # MOBO
@@ -360,21 +369,26 @@ class Machine
       :net => 5.4,
       :disks => 4.8
     }
-    score_max = score_conf.sum
 
     same_components = compare_to(other_machine)
 
     score = 0.0
+    score_max = 0.0
 
+    # set the numerator    
     [:serial, :uuid, :mobo, :cpu].each do |component| 
       score += score_conf[component] if same_components[component] == :yes
     end
-
     [:ram, :net, :disks].each do |component|
       score += (
         same_components[component].to_f / @data[component].length.to_f +
         same_components[component].to_f / other_machine.data[component].length.to_f 
       ) * score_conf[component] / 2 
+    end
+
+    # set the denominator
+    score_conf.each_key do |key|
+      score_max += score_conf[key] unless same_components[key] == :undef
     end
 
     percent = (score/score_max)*100

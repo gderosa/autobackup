@@ -302,7 +302,7 @@ class Machine
         if @data[:uuid].casecmp( other_machine.data[:uuid] ) == 0
           same_components[:uuid] = :yes
         end
-      rescue NoMethodError, TypeError # only one of the two is nil # TODO: xor operator?
+      rescue NoMethodError, TypeError # only one of the two UUIDs is nil # TODO: xor operator?
         same_components[:uuid] = :no
       end
     end
@@ -313,7 +313,7 @@ class Machine
         if @data[:serial].casecmp( other_machine.data[:serial] ) == 0
           same_components[:serial] = :yes
         end
-      rescue NoMethodError, TypeError # only one of the two is nil # TODO: xor operator?
+      rescue NoMethodError, TypeError # only one of the two serial is nil # TODO: xor operator?
         same_components[:serial] = :no
       end 
     end

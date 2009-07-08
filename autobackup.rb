@@ -121,6 +121,7 @@ class Autobackup
         @network_previously_mounted = true 
         @conf['localdir'] = @network_fs.mountpoint
       else
+      	puts "Contacting server..."
         if @conf['localdir']
           @network_fs.mount(@conf['localdir']) 
         else
@@ -134,10 +135,10 @@ class Autobackup
   end
 
   def detect_hardware
-    print "Detecting hardware... "
-    $stdout.flush
+    puts "Detecting hardware... "
+    #$stdout.flush
     if @conf['nocache'] or (not File.readable?(Lshw_xml_cache))
-      @current_machine_xmldata = `lshw -quiet -xml`
+      @current_machine_xmldata = `lshw -xml`
       f = File.open(Lshw_xml_cache, "w")
       f.print @current_machine_xmldata
       f.close
@@ -147,7 +148,7 @@ class Autobackup
     @current_machine = Machine.new(
      :xmldata => @current_machine_xmldata,
      :id => UUID.new.generate )
-    puts "done."
+    #puts "done."
   end
 
   def detect_disks

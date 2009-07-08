@@ -443,11 +443,13 @@ class Autobackup
     end
 
     @current_disks.clone.each_with_index do |disk, disk_index| 
+
       next if (not disk.kernel_id) or disk.kernel_id.length < 1
         # to avoid cdroms etc.
       puts "\nRestore of #{disk.kernel_id}" + \
         "\n (#{disk.dev}, size=#{disk.size})" 
       if @conf['noninteractive'] or (agree("Proceed?") {|q| q.default="no"})
+
         result = disk.restore(@remote_disks, @remote_machine, @conf['localdir'])
         if result[:state] == :not_found_the_same_disk
           puts "Which of these disks you want to restore from?"
@@ -460,6 +462,14 @@ class Autobackup
           result = disk.restore(
             @remote_disks[i], @remote_machine, @conf['localdir'])
         end
+
+        # Restore partition table and/or MBR. 
+        # TODO: support GUID partition tables?
+        #
+        # Which command should be invoked last?
+        # dd if=mbr.bin of=/dev/hda 
+        # sfdisk < sfdisk-d.txt
+        # They are both necessary sonce 
         if result[:state] == :no_ptable
           restore_ptable = \
             agree("Partition tables do not match. Restore it [y/n]?")
@@ -468,15 +478,7 @@ class Autobackup
               q.default = "no"
             end
           end
-
           if restore_ptable
-            
-            if restore_boot
-              disk.restore_mbr( 
-                @conf['localdir'] + "/" + 
-                @remote_machine.id + "/" + 
-                result[:disk].kernel_id) 
-            end
             disk.restore_ptable( # TODO: a more coherent API?
               @conf['localdir'] + "/" + 
               @remote_machine.id + "/" + 
@@ -488,12 +490,19 @@ class Autobackup
               @remote_machine, 
               @conf['localdir'],
               :dont_check_ptable) 
-
           end
-
+          if restore_boot
+            disk.restore_mbr( 
+              @conf['localdir'] + "/" + 
+              @remote_machine.id + "/" + 
+              result[:disk].kernel_id) 
+          end
         end
+
       end
-    end 
+
+    end
+
     return true 
   end
 

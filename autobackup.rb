@@ -465,12 +465,14 @@ class Autobackup
         end
 
         # Restore partition table and/or MBR. 
+        #
         # TODO: support GUID partition tables?
         #
-        # Which command should be invoked last?
-        # dd if=mbr.bin of=/dev/hda 
-        # sfdisk < sfdisk-d.txt
-        # They are both necessary sonce 
+        # Apparently, the right order to do things is:
+        #   sfdisk < sfdisk-d.txt
+        #   dd if=mbr.bin of=/dev/hda 
+        # as opposite to what reads here:
+        # http://www.partimage.org/Partimage-manual_Backup-partition-table#Restoring_partition_entries_from_the_backup
         if result[:state] == :no_ptable
           restore_ptable = \
             agree("Partition tables do not match. Restore it [y/n]?")

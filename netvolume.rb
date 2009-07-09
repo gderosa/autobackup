@@ -10,7 +10,7 @@ class NetVolume < Partition
   end
 
   def mount(mountpoint="#{Mount_base}/#@dev")
-    File.makedirs(mountpoint) unless File.directory?(mountpoint)
+    FileUtils::mkdir_p(mountpoint) unless File.directory?(mountpoint)
     if @fstype =~ /fuse\.ssh/
       if system("sshfs #@dev #{mountpoint}")
         @mountpoint = mountpoint

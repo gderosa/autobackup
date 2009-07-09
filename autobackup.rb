@@ -306,10 +306,7 @@ class Autobackup
       end
       puts "Updating you data..."
       xmldoc = REXML::Document::new @current_machine_xmldata
-      puts name
-      puts xmldoc.root.attributes["id"]
       xmldoc.root.attributes["id"] = name
-      puts xmldoc.root.attributes["id"]
       @current_machine_xmldata = "<?xml version=\"1.0\" standalone=\"yes\" ?>\n"
       # the following method will append, not rewrite (calls '<<' ) 
       REXML::Formatters::Default.new.write(xmldoc.root, @current_machine_xmldata)

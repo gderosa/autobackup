@@ -23,7 +23,7 @@ class Partition
     ntfsclone = "ntfsclone --rescue -s -O - #@dev"
     gzip = "gzip --fast -c"
     dest_file = dir + "/" + Image_file_name
-    File.mv(dest_file, dest_file + ".old") if File.exists?(dest_file)
+    FileUtils.mv(dest_file, dest_file + ".old") if File.exists?(dest_file)
     dest_file_partial = dest_file + ".partial"
 
     cmd = case @fstype
@@ -42,7 +42,7 @@ class Partition
 
     # rename dest_file.partial to dest_file only on success
     if system(cmd) 
-      File.mv(dest_file_partial, dest_file)
+      FileUtils.mv(dest_file_partial, dest_file)
     end
 
   end

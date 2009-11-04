@@ -161,12 +161,12 @@ class Autobackup
     disk_tmp_dev = nil
     # NOTE: WARNING: older versions of GNU parted do not support -m option!
     # Upgrade to a newer one if necessary.
-    pipe = IO.popen("LANG=C && parted -m", "r+")
+    pipe = IO.popen("LANG=C && parted -lm", "r")
     #pipe.puts "unit b" # let's try to keep it human readable!
       # another advantage is "fuzzy" comparison between partition sizes
-    pipe.puts "print all"
-    pipe.puts "quit"
-    pipe.close_write
+    #pipe.puts "print all"
+    #pipe.puts "quit"
+    #pipe.close_write
     lines = pipe.readlines
     @parted_output = ""
     lines.each do |line|

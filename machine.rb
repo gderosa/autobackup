@@ -389,10 +389,16 @@ class Machine
       score += score_conf[component] if same_components[component] == :yes
     end
     [:ram, :net, :disks].each do |component|
-      score += (
-        same_components[component].to_f / @data[component].length.to_f +
-        same_components[component].to_f / other_machine.data[component].length.to_f 
-      ) * score_conf[component] / 2 
+      if # this shouldn't happen: workaround; treat as a perfect match...
+          @data[component].length == 0 or 
+          other_machine.data[component].length == 0
+        score += score_conf[component]
+      else
+        score += (
+          same_components[component].to_f / @data[component].length.to_f +
+          same_components[component].to_f / other_machine.data[component].length.to_f 
+        ) * score_conf[component] / 2 
+      end
     end
 
     # set the denominator

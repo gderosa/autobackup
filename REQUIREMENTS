@@ -3,6 +3,8 @@ A GNU/Linux distribution: a live cd/usbdisk/PXE image is recommended
 
 Linux kernel version >= 2.6
 
+sudo: grant root privileges to non-root users (for specific commands)
+
 dd: most likely present in any Unix-like OS
 
 GNU parted: latest stable release recommended, it must support -m switch

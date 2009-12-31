@@ -5,7 +5,7 @@ class Partition
   attr_reader :dev, :fstype, :kernel_id, :pn, :size, :start, :end, :mountpoint
 
   Mount_base = "/mnt/target"
-  Image_file_name = "img.gz"
+  Image_file_name = "img"
   
   def initialize(args) 
     @dev = args[:dev]
@@ -22,18 +22,23 @@ class Partition
     partimage = "partimage -g0 -c -V0 -d -o -z0 -Bx=y save #@dev stdout"
     ntfsclone = "ntfsclone --rescue -s -O - #@dev"
     gzip = "gzip --fast -c"
-    dest_file = dir + "/" + Image_file_name
-    FileUtils.mv(dest_file, dest_file + ".old") if File.exists?(dest_file)
-    dest_file_partial = dest_file + ".partial"
+    dest_file = nil
+    dest_file_partial = nil
+    cmd = nil
+    #FileUtils.mv(dest_file, dest_file + ".old") if File.exists?(dest_file)
 
-    cmd = case @fstype
+    case @fstype
     
     when "vfat", "fat", "fat32", "fat16", "msdos", "msdosfs", \
       "ext2", "ext3", "xfs", "jsf", "reiserfs"
-      partimage + " | " + gzip + " > " + dest_file_partial
+      dest_file = dir + "/" + Image_file_name + '.gz'
+      dest_file_partial = dest_file + '.partial'
+      cmd = partimage + " | " + gzip + " > " + dest_file_partial
 
     when "ntfs"
-      ntfsclone + " | " + gzip + " > " + dest_file_partial
+      dest_file = dir + "/" + Image_file_name
+      dest_file_partial = dest_file + '.partial'
+      cmd = ntfsclone + " | " + gzip + " > " + dest_file_partial
 
     else
       return
@@ -41,7 +46,7 @@ class Partition
     end
 
     # rename dest_file.partial to dest_file only on success
-    if system(cmd) 
+    if system("sudo #{cmd}")  
       FileUtils.mv(dest_file_partial, dest_file)
     end
 
@@ -68,7 +73,7 @@ class Partition
 
     end
 
-    system(cmd)
+    system("sudo #{cmd}")
   end
  
 

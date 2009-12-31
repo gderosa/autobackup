@@ -148,7 +148,7 @@ class Machine
       doc.elements.each(search_pattern) do |net|
 
         # Is there a valid MAC address? Check, but be tolerant: various
-        # separator, not just ':', are allowed... or even *no* separator 
+        # separators, not just ':', are allowed... or even *no* separator 
         # at all (see the "[ :\.,;-_]?" in the regexp) .
         tmp_mac_elm = net.elements["serial"]
         next unless tmp_mac_elm
@@ -389,10 +389,14 @@ class Machine
       score += score_conf[component] if same_components[component] == :yes
     end
     [:ram, :net, :disks].each do |component|
-      if # this shouldn't happen: workaround; treat as a perfect match...
-          @data[component].length == 0 or 
+      if # this shouldn't happen; workaround: treat as a perfect match...
+          @data[component].length == 0 and
           other_machine.data[component].length == 0
         score += score_conf[component]
+      elsif # only one machine has got 0 network interface detected: no match!
+          @data[component].length == 0 or
+          other_machine.data[component].length == 0
+        score += 0
       else
         score += (
           same_components[component].to_f / @data[component].length.to_f +

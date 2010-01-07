@@ -48,7 +48,7 @@ class Autobackup
     detect_hardware                                 # sets @current_machine
     detect_disks                                    # sets @current_disks 
     get_remote_machines  # retrieve Machine objects and fills @remote_machines
-    find_machine_matches                             # fills @machine_matches
+    find_machine_matches                            # fills @machine_matches
     ui
     @network_fs.umount if @network_fs and not @network_previously_mounted
   end
@@ -280,7 +280,7 @@ class Autobackup
 
   def find_machine_matches
     @machine_matches = []
-    min_percent_match = 20 # first filter
+    min_percent_match = 60 # first filter
     @remote_machines.each_value do |remote_machine|
       match = @current_machine.compare_to_w_score(remote_machine)
       if match[:percent_match] > min_percent_match
@@ -301,8 +301,9 @@ class Autobackup
       name = ""
       print "This is the first time you backup this computer. "
       print "Choose a name for it:\n"
-      while `hostname #{name=$stdin.gets.strip} 2>&1`.length > 0 
-        print "Invalid hostname. Choose another one: "
+      while name=$stdin.gets.strip 
+        break if name =~ /^[0-9a-z](.*\S)?$/i
+        print "Invalid name. Choose another one: "
       end
       puts "Updating you data..."
       xmldoc = REXML::Document::new @current_machine_xmldata
@@ -311,7 +312,7 @@ class Autobackup
       # the following method will append, not rewrite (calls '<<' ) 
       REXML::Formatters::Default.new.write(xmldoc.root, @current_machine_xmldata)
       # rightly, do not parse the xml again, edit data structure directly
-      @current_machine.data[:name] = `hostname`.strip
+      @current_machine.data[:name] = name
       @remote_machine = @current_machine
       save_current_machine
       puts "\nOk. Your machine details follow:\n\n"

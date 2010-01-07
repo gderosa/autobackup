@@ -20,7 +20,7 @@ class Partition
 
   def backup(dir)
     partimage = "partimage -g0 -c -V0 -d -o -z0 -Bx=y save #@dev stdout"
-    ntfsclone = "ntfsclone --rescue -s -O - #@dev"
+    ntfsclone = "ntfsclone --rescue -f -s -O - #@dev"
     gzip = "gzip --fast -c"
     dest_file = nil
     dest_file_partial = nil

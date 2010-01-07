@@ -17,7 +17,7 @@ partimage: v0.6.7 was used
 
 SSHFS: http://fuse.sourceforge.net/sshfs.html (optional) 
 
-ruby >= 1.8
+ruby (tested with 1.9.x)
 
 Ruby 'require's (install gems or your distro's packages as needed):
 	require 'rubygems'

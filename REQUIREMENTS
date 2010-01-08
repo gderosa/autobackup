@@ -1,3 +1,6 @@
+http://github.com/gderosa/autobackup
+guido.derosa at vemarsas.it
+
 A GNU/Linux distribution: a live cd/usbdisk/PXE image is recommended
   -- hard disks partitions must be unmounted to be backed-up/restored
 
@@ -14,6 +17,8 @@ sfdisk: util-linux-ng 2.13.1 was used under Ubuntu 8.04 and Debian 5.0
 ntfsclone: v2.0.0 and libntfs 10:0:0 were used
 
 partimage: v0.6.7 was used
+
+dar: http://dar.linux.free.fr/
 
 SSHFS: http://fuse.sourceforge.net/sshfs.html (optional) 
 

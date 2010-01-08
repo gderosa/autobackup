@@ -260,6 +260,7 @@ class Autobackup
       exit 1
     end
     Dir.entries(basedir).each do |entry|
+      next unless File.directory? entry
       name = entry
       unless name =~ /^\./  #exclude '.' and '..' and hidden directories
         @remote_machines[name] = \

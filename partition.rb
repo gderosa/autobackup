@@ -20,32 +20,34 @@ class Partition
   end
 
   def backup(h)
+    # We use blowfish encryption:
+    # * disk images are piped to openssl
+    # * DAR archive utility has its own encryption options
     dir = h[:volumedir]
     passphrase = h[:passphrase]
     partimage = "partimage -g0 -c -V0 -d -o -z0 -Bx=y save #@dev stdout"
     ntfsclone = "ntfsclone --rescue -f -s -O - #@dev"
     gzip = "gzip --fast -c"
-    dest_file = nil
-    dest_file_partial = nil
-    cmd = nil
+    encrypt = "openssl enc -e -bf -k '#{passphrase}'"
+    dest_file = dir + "/" + Image_file_name + '.gz'
+    dest_file_partial = dest_file + '.partial'
 
     case @fstype
     
     when "vfat", "fat", "fat32", "fat16", "msdos", "msdosfs", \
       "ext2", "ext3", "xfs", "jsf", "reiserfs"
-      dest_file = dir + "/" + Image_file_name + '.gz'
-      dest_file_partial = dest_file + '.partial'
-      cmd = partimage + " | " + gzip + " > " + dest_file_partial
+      cmd = "#{partimage} | #{gzip} "
 
     when "ntfs"
-      dest_file = dir + "/" + Image_file_name
-      dest_file_partial = dest_file + '.partial'
-      cmd = ntfsclone + " | " + gzip + " > " + dest_file_partial
+      cmd = "#{ntfsclone} | #{gzip} "
 
     else
       return
 
     end
+
+    cmd << " | #{encrypt} " if h[:passphrase]
+    cmd << " > " + dest_file_partial
 
     # rename dest_file.partial to dest_file only on success
     if system("sudo #{cmd}")  

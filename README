@@ -1,3 +1,8 @@
+Copyright (C) 2009, 2010 Guido De Rosa (guido.derosa * vemarsas.it) 
+
+License: GPLv2+
+
 Automatic backup tool in Ruby. Machines are automagically identified,
 even with some hw component replaced. Developed for VEMAR s.a.s., 
 Paterno (PZ), ITALY.
+

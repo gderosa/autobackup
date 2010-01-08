@@ -18,7 +18,7 @@ class Machine
 
     if args[:remote]
 
-      dir = args[:remote][:basedir] + '/' + args[:id] # SSHFS mountpoint, really
+      dir = args[:remote][:basedir] + '/' + args[:id] 
       xmlfile = dir + '/' + "lshw.xml"
       datfile = dir + '/' + "machine.dat"
 

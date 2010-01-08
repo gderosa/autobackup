@@ -371,7 +371,8 @@ class Autobackup
       end
       case choice 
       when '1'
-        ui_backup
+        passphrase = ui_crypto
+        ui_backup(:passphrase => passphrase) 
       when '2' 
         choice = :__invalid__ unless ui_restore    
       when '3'
@@ -380,7 +381,23 @@ class Autobackup
     end
   end
 
-  def ui_backup
+  def ui_crypto
+    loop do
+      passphrase = 
+          ask("Passphrase (or leave empty to no encrypt data): ") do |q| 
+        q.echo = '*'
+      end
+      return nil if passphrase == ""
+      passphrase2 = ask("Passphrase (verify): ") {|q| q.echo = '*'}
+      if passphrase == passphrase2
+        return passphrase.strip
+      else
+        say "Passphrase mismatch!" 
+      end
+    end
+  end
+
+  def ui_backup(h)
     machine_id = @current_machine.id = @remote_machine.id
     save_current_machine # overwrite old hardware data
 
@@ -434,7 +451,7 @@ class Autobackup
           end
 
           puts "\n  partition #{part.pn} (#{part.dev}) Type = #{part.fstype}"
-          part.backup(volumedir) 
+          part.backup(:volumedir => volumedir, :passphrase => h[:passphrase]) 
           part.mount(mountpoint_save) if mountpoint_save
         end
       end

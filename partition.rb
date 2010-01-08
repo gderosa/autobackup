@@ -19,7 +19,9 @@ class Partition
     @mountpoint = find_mountpoint
   end
 
-  def backup(dir)
+  def backup(h)
+    dir = h[:volumedir]
+    passphrase = h[:passphrase]
     partimage = "partimage -g0 -c -V0 -d -o -z0 -Bx=y save #@dev stdout"
     ntfsclone = "ntfsclone --rescue -f -s -O - #@dev"
     gzip = "gzip --fast -c"
@@ -46,11 +48,9 @@ class Partition
     end
 
     # rename dest_file.partial to dest_file only on success
-    #if system("sudo #{cmd}")  
-    #  FileUtils.mv(dest_file_partial, dest_file)
-    #end
-    puts "fake cloning!"
-    gets
+    if system("sudo #{cmd}")  
+      FileUtils.mv(dest_file_partial, dest_file)
+    end
 
     # Now, make a files archive (use DAR http://dar.linux.free.fr/ )  
     dest_archive = File.expand_path(dir + '/' + Archive_file_name)
@@ -64,17 +64,17 @@ class Partition
                  end
 
     mount({:options => 'ro', :type => mount_type}) unless mounted?
-    puts "#@dev -> #@mountpoint -> #{dest_archive}"
-    system <<EOF
-sudo \
-  dar -v -z1 -K "blowfish:" -M --no-warn -R #@mountpoint -c #{dest_archive} \
-  --alter=no-case \
-  -X hiberfil.sys -X pagefile.sys -P "System Volume Information" -P MSOCache \
-  -Z "*.cab" -Z "*.zip" -Z "*.gz" -Z "*.bz2" -Z "*.lz*" -Z "*.jar" \
-  -Z "*.png" -Z "*.gif" -Z "*.jp*g" \
-  -Z "*.mp*" -Z "*.avi" -Z "*.mov" -Z "*.wm*"
-EOF
-    gets
+    #puts "#@dev -> #@mountpoint -> #{dest_archive}"
+    cmd = "dar -v -z1 -M --no-warn -R #@mountpoint -c #{dest_archive} "
+    cmd << '-K "blowfish:' << passphrase << '" ' if passphrase
+    cmd << '--alter=no-case '
+    if @fstype == 'ntfs'
+      cmd << '-X hiberfil.sys -X pagefile.sys -P "System Volume Information" '
+    end
+    cmd << '-Z "*.cab" -Z "*.zip" -Z "*.gz" -Z "*.bz2" -Z "*.lz*" -Z "*.jar" '
+    cmd << '-Z "*.png" -Z "*.gif" -Z "*.jp*g" '
+    cmd << '-Z "*.mp*" -Z "*.avi" -Z "*.mov" -Z "*.wm*" '
+    system "sudo #{cmd}"
     umount
 
   end

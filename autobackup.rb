@@ -260,9 +260,9 @@ class Autobackup
       exit 1
     end
     Dir.entries(basedir).each do |entry|
-      next unless File.directory? entry
+      next unless File.directory? File.join(basedir, entry)
       name = entry
-      unless name =~ /^\./  #exclude '.' and '..' and hidden directories
+      unless name =~ /^\./  #exclude '.' ,  '..' and hidden files/directories
         @remote_machines[name] = \
           Machine.new(
             :id => name, 
@@ -281,7 +281,7 @@ class Autobackup
 
   def find_machine_matches
     @machine_matches = []
-    min_percent_match = 60 # first filter
+    min_percent_match = 0 # first filter
     @remote_machines.each_value do |remote_machine|
       match = @current_machine.compare_to_w_score(remote_machine)
       if match[:percent_match] > min_percent_match

@@ -36,17 +36,17 @@ class Partition
     
     when "vfat", "fat", "fat32", "fat16", "msdos", "msdosfs", \
       "ext2", "ext3", "xfs", "jsf", "reiserfs"
-      cmd = "#{partimage} | #{gzip} "
+      cmd = "#{partimage} | #{gzip}"
 
     when "ntfs"
-      cmd = "#{ntfsclone} | #{gzip} "
+      cmd = "#{ntfsclone} | #{gzip}"
 
     else
       return
 
     end
 
-    cmd << " | #{encrypt} " if h[:passphrase]
+    cmd << " | #{encrypt}" if h[:passphrase]
     cmd << " > " + dest_file_partial
 
     # rename dest_file.partial to dest_file only on success

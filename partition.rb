@@ -28,7 +28,7 @@ class Partition
     partimage = "partimage -g0 -c -V0 -d -o -z0 -Bx=y save #@dev stdout"
     ntfsclone = "ntfsclone --rescue -f -s -O - #@dev"
     gzip = "gzip --fast -c"
-    encrypt = "openssl enc -e -bf -k '#{passphrase}'"
+    encrypt = "openssl enc -e -bf -pass pass:'#{passphrase}'"
     dest_file = dir + "/" + Image_file_name + '.gz'
     dest_file_partial = dest_file + '.partial'
 
@@ -96,7 +96,7 @@ class Partition
     cmd = ''
 
     if crypto_options and crypto_options[:passphrase]
-      cmd = "openssl enc -d -bf -k '#{crypto_options[:passphrase]}' -in #{img_file} | gunzip -c"
+      cmd = "openssl enc -d -bf -pass pass:'#{crypto_options[:passphrase]}' -in #{img_file} | gunzip -c"
     else
       cmd = "gunzip -c #{img_file}"
     end

@@ -81,21 +81,36 @@ class Partition
 
   end
 
-  def restore(dir, fstype)
+  def restore(dir, fstype, crypto_options=nil)
     partimage = "partimage -g0 -V0 -d -Bx=y restore #@dev stdin"
     ntfsclone = "ntfsclone -r -O #@dev -"
     img_file = dir + "/" + Image_file_name
 
-    File.stat img_file # raises an exception if not found
+    begin
+      File.stat img_file # raises an exception if not found
+    rescue Errno::ENOENT
+      img_file = img_file + '.gz'
+      File.stat img_file # raises an exception if not found
+    end
 
-    cmd = case fstype
+    cmd = ''
+
+    if crypto_options and crypto_options[:passphrase]
+      cmd = "openssl enc -d -bf -k '#{crypto_options[:passphrase]}' -in #{img_file} | gunzip -c"
+    else
+      cmd = "gunzip -c #{img_file}"
+    end
+
+    cmd << ' | '
+
+    cmd << case fstype
     
     when "vfat", "fat", "fat32", "fat16", "msdos", "msdosfs", \
-      "ext2", "ext3", "xfs", "jsf", "reiserfs"
-      "gunzip -c #{img_file} | " + partimage 
+        "ext2", "ext3", "xfs", "jsf", "reiserfs"
+      partimage 
 
     when "ntfs"
-      "gunzip -c #{img_file} | " + ntfsclone
+      ntfsclone
 
     else
       return
@@ -103,6 +118,8 @@ class Partition
     end
 
     system("sudo #{cmd}")
+
+    # There's no restore from DAR archive in *this* application.
   end
  
 

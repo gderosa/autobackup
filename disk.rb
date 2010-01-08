@@ -31,7 +31,7 @@ class Disk
     `sfdisk -f --no-reread #{@dev} < #{dir}/sfdisk-d 2> /dev/null`
   end
 
-  def restore(disks, machine, dir, *opts)
+  def restore(disks, machine, dir, crypto_opts={}, *opts)
     # @ disks may be an array of Disk objects or just *a* Disk object
     
     raise TypeError, "disks cannot be ``nil'' or ``false''" unless disks
@@ -39,7 +39,7 @@ class Disk
     if disks.class == Array # you must figure out which disk to restore from
       disks.each do |disk|
         if @kernel_id == disk.kernel_id
-          return restore(disk, machine, dir) 
+          return restore(disk, machine, dir, crypto_opts) 
         end
       end  
       return {:disk => nil, :state => :not_found_the_same_disk}
@@ -63,15 +63,16 @@ class Disk
       vol.umount if (mountpoint_save = vol.mountpoint) 
       remote_volume = disk.volumes.detect{|x|x.pn==vol.pn}
       if remote_volume.respond_to? "fstype"
-        begin
+        #begin
           vol.restore(
             diskdir + "/" + vol.pn.to_s,
-            remote_volume.fstype
+            remote_volume.fstype,
+            crypto_opts
           ) 
-        rescue Errno::ENOENT
-          STDERR.puts "\nCouldn't restore partition no. #{vol.pn}: image file not found"
-          STDERR.puts "(if a backup was made, maybe it was not completed)"
-        end
+        #rescue Errno::ENOENT
+        #  STDERR.puts "\nCouldn't restore partition no. #{vol.pn}: image file not found"
+        #  STDERR.puts "(if a backup was made, maybe it was not completed)"
+        #end
       end
       vol.mount(mountpoint_save) if mountpoint_save
     end

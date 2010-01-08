@@ -372,17 +372,29 @@ class Autobackup
       end
       case choice 
       when '1'
-        passphrase = ui_crypto
+        passphrase = ui_create_passphrase
         ui_backup(:passphrase => passphrase) 
       when '2' 
-        choice = :__invalid__ unless ui_restore    
+        passphrase = ui_get_passphrase
+        choice = :__invalid__ unless ui_restore(passphrase)
       when '3'
         return
       end
     end
   end
 
-  def ui_crypto
+  def ui_get_passphrase
+    passphrase = ask(
+        "Enter the passphrase if data are encrypted (leave empty otherwise)"
+    ) {|q| q.echo = '*'}
+    if passphrase =~ /\S/
+      return passphrase
+    else
+      return nil
+    end
+  end
+
+  def ui_create_passphrase
     loop do
       passphrase = 
           ask("Passphrase (or leave empty to no encrypt data): ") do |q| 
@@ -460,7 +472,7 @@ class Autobackup
     puts
   end
 
-  def ui_restore
+  def ui_restore(passphrase=nil)
     if @remote_disks.length == 0
       print "\nUnavailable: no backup of this machine has been made!\n\n"
       return false
@@ -474,7 +486,12 @@ class Autobackup
         "\n (#{disk.dev}, size=#{disk.size})" 
       if @conf['noninteractive'] or (agree("Proceed?") {|q| q.default="no"})
 
-        result = disk.restore(@remote_disks, @remote_machine, @conf['localdir'])
+        result = disk.restore(
+            @remote_disks, 
+            @remote_machine, 
+            @conf['localdir'],
+            {:passphrase => passphrase}
+        )
         if result[:state] == :not_found_the_same_disk
           puts "Which of these disks you want to restore from?"
           @remote_disks.each_index do |i|
@@ -484,7 +501,11 @@ class Autobackup
           puts (@remote_disks.length + 1).to_s + ". None."
           i = ask("?", Integer) { |q| q.in = 1..(@remote_disks.length + 1) } - 1
           result = disk.restore(
-            @remote_disks[i], @remote_machine, @conf['localdir'])
+              @remote_disks[i], 
+              @remote_machine, 
+              @conf['localdir'],
+              {:passphrase => passphrase}
+          )
         end
 
         # Restore partition table and/or MBR. 
@@ -512,10 +533,12 @@ class Autobackup
             detect_disks                      # re-run...
             disk = @current_disks[disk_index] # ...and update
             disk.restore(
-              result[:disk], 
-              @remote_machine, 
-              @conf['localdir'],
-              :dont_check_ptable) 
+                result[:disk], 
+                @remote_machine, 
+                @conf['localdir'],
+                {:passphrase => passphrase},
+                :dont_check_ptable
+            ) 
           end
           if restore_boot
             disk.restore_mbr( 

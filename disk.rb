@@ -15,6 +15,9 @@ class Disk
     @model = args[:model]
   end
 
+  # NOTE: you don't really need to 'sudo' commands dd and sfdisk.
+  # Adding your normal user to the 'disk' system group will suffice.
+
   def backup_mbr(dir)
     system "dd if=#{@dev} of=#{dir}/mbr.bin bs=512 count=1 &> /dev/null"
   end
@@ -63,16 +66,16 @@ class Disk
       vol.umount if (mountpoint_save = vol.mountpoint) 
       remote_volume = disk.volumes.detect{|x|x.pn==vol.pn}
       if remote_volume.respond_to? "fstype"
-        #begin
+        begin
           vol.restore(
             diskdir + "/" + vol.pn.to_s,
             remote_volume.fstype,
             crypto_opts
           ) 
-        #rescue Errno::ENOENT
-        #  STDERR.puts "\nCouldn't restore partition no. #{vol.pn}: image file not found"
-        #  STDERR.puts "(if a backup was made, maybe it was not completed)"
-        #end
+        rescue Errno::ENOENT
+          STDERR.puts "\nCouldn't restore partition no. #{vol.pn}: image file not found"
+          STDERR.puts "(if a backup was made, maybe it was not completed)"
+        end
       end
       vol.mount(mountpoint_save) if mountpoint_save
     end

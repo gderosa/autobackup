@@ -107,17 +107,17 @@ class Partition
     
     when "vfat", "fat", "fat32", "fat16", "msdos", "msdosfs", \
         "ext2", "ext3", "xfs", "jsf", "reiserfs"
-      partimage 
+      "sudo #{partimage}"
 
     when "ntfs"
-      ntfsclone
+      "sudo #{ntfsclone}"
 
     else
       return
 
     end
 
-    system("sudo #{cmd}")
+    system(cmd)
 
     # There's no restore from DAR archive in *this* application.
   end

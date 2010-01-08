@@ -21,5 +21,9 @@ root	ALL=(ALL) ALL
 # it further down)
 # %sudo ALL=NOPASSWD: ALL
 
-%backup	ALL=NOPASSWD: /usr/bin/lshw, /sbin/parted, /usr/sbin/partimage, /usr/sbin/ntfsclone
+%backup	ALL=NOPASSWD: /usr/bin/lshw, /sbin/parted, /usr/sbin/partimage, /usr/sbin/ntfsclone, /bin/mount, /bin/umount, /usr/bin/dar
+
+# NOTE: you don't really need to 'sudo' commands dd and sfdisk.
+# Adding your normal user to the 'disk' system group will suffice,
+# as opposed to other commands which will complain anyway if you're not root.
 

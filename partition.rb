@@ -60,7 +60,7 @@ class Partition
                  when "vfat", "fat", "fat32", "fat16", "msdos", "msdosfs"
                    'vfat'
                  when "ntfs"
-                   'ntfs' # I believe kernel-based RO NTFS is fast
+                   'ntfs-3g' # NTFS-3g should be more robust
                  else
                    @fstype
                  end

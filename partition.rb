@@ -50,11 +50,11 @@ class Partition
     cmd << " > " + dest_file_partial
 
     # rename dest_file.partial to dest_file only on success
-    if system("sudo #{cmd}")  
-      FileUtils.mv(dest_file_partial, dest_file)
-    end
+    #if system("sudo #{cmd}")  
+    #  FileUtils.mv(dest_file_partial, dest_file)
+    #end
 
-    # Now, make a files archive (use DAR http://dar.linux.free.fr/ )  
+    # Now, make a files archive 
     dest_archive = File.expand_path(dir + '/' + Archive_file_name)
     mount_type = case @fstype
                  when "vfat", "fat", "fat32", "fat16", "msdos", "msdosfs"
@@ -67,16 +67,28 @@ class Partition
 
     mount({:options => 'ro', :type => mount_type}) unless mounted?
     #puts "#@dev -> #@mountpoint -> #{dest_archive}"
-    cmd = "dar -v -z1 -M --no-warn -R #@mountpoint -c #{dest_archive} "
-    cmd << '-K "blowfish:' << passphrase << '" ' if passphrase
-    cmd << '--alter=no-case '
-    if @fstype == 'ntfs'
-      cmd << '-X hiberfil.sys -X pagefile.sys -P "System Volume Information" '
+
+    case h[:archive_format]
+    when :dar
+      cmd = "dar -v -z1 -M --no-warn -R #@mountpoint -c #{dest_archive} "
+      cmd << '-K "blowfish:' << passphrase << '" ' if passphrase
+      cmd << '--alter=no-case '
+      if @fstype == 'ntfs'
+        cmd << '-X hiberfil.sys -X pagefile.sys -P "System Volume Information" '
+      end
+      cmd << '-Z "*.cab" -Z "*.zip" -Z "*.gz" -Z "*.bz2" -Z "*.lz*" -Z "*.jar" '
+      cmd << '-Z "*.png" -Z "*.gif" -Z "*.jp*g" '
+      cmd << '-Z "*.mp*" -Z "*.avi" -Z "*.mov" -Z "*.wm*" '
+      system "sudo -E #{cmd}"
+    when :"7z"
+      cmd = "7z a -mx=0 #{dest_archive}.7z #@mountpoint"
+      #cmd << " -x@#{ROOTDIR}/share/ntfs.exclude" if @fstype == 'ntfs'
+      system "sudo -E #{cmd}" 
+    when :"tar.gz"
+      cmd = "GZIP==--fast tar -C #@mountpoint cvzf #{dest_archive}.tar.gz ."
+      system "sudo -E #{cmd}"
     end
-    cmd << '-Z "*.cab" -Z "*.zip" -Z "*.gz" -Z "*.bz2" -Z "*.lz*" -Z "*.jar" '
-    cmd << '-Z "*.png" -Z "*.gif" -Z "*.jp*g" '
-    cmd << '-Z "*.mp*" -Z "*.avi" -Z "*.mov" -Z "*.wm*" '
-    system "sudo #{cmd}"
+
     umount
 
   end
@@ -128,12 +140,18 @@ class Partition
     return false
   end
 
-  def mount(h)
-    mountpoint = h[:mountpoint] || "#{Mount_base}/#{File.basename @dev}"
+  def mount(h={})
+    begin
+      mountpoint = h[:mountpoint] || "#{Mount_base}/#{File.basename @dev}"
+    rescue
+      puts $!
+      pp h
+      exit
+    end
     type = h[:type] || 'auto'
     options = h[:options] ? "-o #{h[:options]}" : ""
     Dir.mkdir(mountpoint) unless File.directory?(mountpoint)
-    if system("sudo mount -t #{type} #@dev #{mountpoint} #{options}") 
+    if system("sudo -E mount -t #{type} #@dev #{mountpoint} #{options}") 
       @mountpoint = File.expand_path mountpoint
       return true
     else
@@ -143,7 +161,7 @@ class Partition
 
   def umount
     if mounted?
-      if system("sudo umount #@dev 2> /dev/null")
+      if system("sudo -E umount #@dev 2> /dev/null")
         @mountpoint = nil
         return true
       else

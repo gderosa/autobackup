@@ -64,6 +64,7 @@ class Partition
                  else
                    @fstype
                  end
+    exclude_file_windows="#{ROOTDIR}/share/windows.exclude"
 
     mount({:options => 'ro', :type => mount_type}) unless mounted?
     #puts "#@dev -> #@mountpoint -> #{dest_archive}"
@@ -81,9 +82,11 @@ class Partition
       cmd << '-Z "*.mp*" -Z "*.avi" -Z "*.mov" -Z "*.wm*" '
       system "sudo -E #{cmd}"
     when :"7z"
-      cmd = "7z a -mx=0 #{dest_archive}.7z #@mountpoint"
+      exclude = ''
+      exclude = "-x@#{exclude_file_windows}" if mount_type =~ /fat|ntfs/i
+      cmd = "7z a #{exclude} -m0=Deflate -ms=off -mhc=off -mx=1 #{dest_archive}.7z ."
       #cmd << " -x@#{ROOTDIR}/share/ntfs.exclude" if @fstype == 'ntfs'
-      system "sudo -E #{cmd}" 
+      system "cd #@mountpoint && sudo -E #{cmd}" 
     when :"tar.gz"
       cmd = "GZIP==--fast tar -C #@mountpoint cvzf #{dest_archive}.tar.gz ."
       system "sudo -E #{cmd}"
@@ -131,7 +134,7 @@ class Partition
 
     system(cmd)
 
-    # There's no restore from DAR archive in *this* application.
+    # There's no restore from DAR/TAR/7Z archive in *this* application.
   end
  
 

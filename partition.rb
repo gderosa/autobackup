@@ -20,15 +20,20 @@ class Partition
   end
 
   def backup(h)
-    # We use blowfish encryption:
-    # * disk images are piped to openssl
-    # * DAR archive utility has its own encryption options
+    # It is possible to encrypt disk images and archives to comply
+    # with privacy regulations.
+    #
+    # * disk images and tar.gz are piped to openssl (blowfish)
+    # * DAR archive utility has its own encryption options (blowfish)
+    # * 7z has its own encryption options (aes-256) 
+    #
     dir = File.expand_path h[:volumedir]
     passphrase = h[:passphrase]
     partimage = "partimage -g0 -c -V0 -d -o -z0 -Bx=y save #@dev stdout"
     ntfsclone = "ntfsclone --rescue -f -s -O - #@dev"
     gzip = "gzip --fast -c"
     encrypt = "openssl enc -e -bf -pass pass:'#{passphrase}'"
+    openssl_bf_encrypt = encrypt
     dest_file = dir + "/" + Image_file_name + '.gz'
     dest_file_partial = dest_file + '.partial'
 
@@ -50,9 +55,11 @@ class Partition
     cmd << " > " + dest_file_partial
 
     # rename dest_file.partial to dest_file only on success
-    #if system("sudo #{cmd}")  
-    #  FileUtils.mv(dest_file_partial, dest_file)
-    #end
+    if $single_command == 'clone'
+      if system("sudo #{cmd}")  
+        FileUtils.mv(dest_file_partial, dest_file)
+      end
+    end
 
     # Now, make a files archive 
     dest_archive = File.expand_path(dir + '/' + Archive_file_name)
@@ -84,11 +91,19 @@ class Partition
     when :"7z"
       exclude = ''
       exclude = "-x@#{exclude_file_windows}" if mount_type =~ /fat|ntfs/i
-      cmd = "7z a #{exclude} -m0=Deflate -ms=off -mhc=off -mx=1 #{dest_archive}.7z -w#{dir} ."
+      encrypt = ''
+      encrypt = "-mhe=on -p#{passphrase}" if passphrase
+      cmd = "7z a #{exclude} #{encrypt} -m0=Deflate -ms=off -mhc=off -mx=1 #{dest_archive}.7z -w#{dir} ."
       #cmd << " -x@#{ROOTDIR}/share/ntfs.exclude" if @fstype == 'ntfs'
       system "cd #@mountpoint && sudo -E #{cmd}" 
-    when :"tar.gz"
-      cmd = "GZIP==--fast tar -C #@mountpoint cvzf #{dest_archive}.tar.gz ."
+    when :"tar.gz" 
+      # if you choose tar.gz you're a Unix guy and you're supposed to know
+      # how to make a pipe with openssl... aren't you?
+      if passphrase
+        cmd = "GZIP==--fast tar -C #@mountpoint cvz . | #{openssl_bf_encrypt} > #{dest_archive}.tar.gz.bf"
+      else
+        cmd = "GZIP==--fast tar -C #@mountpoint cvzf #{dest_archive}.tar.gz ."
+      end
       system "sudo -E #{cmd}"
     end
 

@@ -29,6 +29,7 @@ class Autobackup
   Disks_dat = "disks.dat"
   Lshw_xml_cache = "/tmp/" + Lshw_xml
   Kernel_disk_by_id = "/dev/disk/by-id"
+  Single_Commands = %w{clone archive malware-scan}
 
   def initialize
     @conf_file = 'autobackup.conf'
@@ -75,13 +76,18 @@ class Autobackup
   def parse_opts 
     # Do Repeat Yourself ;-P
 
-    aliases = {}
-
     waiting = nil
+    $single_command = nil
     
     ARGV.each do |arg|
 
-      aliases.each_pair {|old, new| arg = new if arg == old} 
+      if Single_Commands.include? arg
+        if $single_command
+          fail "ERR: You must specify a single operation among the following ones: #{Single_Commands.join(' ')}"
+        else
+          $single_command = arg
+        end
+      end
 
       if (waiting) # option catched in the previous cycle now gets its argument
         @conf[waiting] = arg

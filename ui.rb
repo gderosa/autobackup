@@ -83,27 +83,33 @@ class Autobackup
       get_remote_disks # fills @remote_disks, once @remote_machine is set
     end
 
-    puts
-    choice = ""
-    while not %w{1 2 3}.include? choice
-      puts "1. Backup"
-      puts "2. Restore"
-      puts "3. Exit"
-      begin
-        choice = $stdin.gets.strip
-      rescue
-        return 
+    puts 
+
+    if $single_command == 'clone'
+      choice = ""
+      while not %w{1 2 3}.include? choice
+        puts "1. Backup"
+        puts "2. Restore"
+        puts "3. Exit"
+        begin
+          choice = $stdin.gets.strip
+        rescue
+          return 
+        end
+        case choice 
+        when '1'
+          passphrase = ui_create_passphrase
+          ui_backup(:passphrase => passphrase) 
+        when '2' 
+          passphrase = ui_get_passphrase
+          choice = :__invalid__ unless ui_restore(passphrase)
+        when '3'
+          return
+        end
       end
-      case choice 
-      when '1'
-        passphrase = ui_create_passphrase
-        ui_backup(:passphrase => passphrase) 
-      when '2' 
-        passphrase = ui_get_passphrase
-        choice = :__invalid__ unless ui_restore(passphrase)
-      when '3'
-        return
-      end
+    elsif $single_command == 'archive'
+      passphrase = ui_create_passphrase
+      ui_backup(:passphrase => passphrase)
     end
   end
 
@@ -154,14 +160,15 @@ class Autobackup
       puts "\nBack up of #{disk.kernel_id}" + \
         "\n (#{disk.dev}, size=#{disk.size})" # TODO: Disk#ui_print?
 
-      #snapshot = false
-      archive_format = :"7z"
+      if $single_command == 'archive'
+        archive_format = :"7z"
 
-      choose do |menu|
-        menu.prompt = "Archive format?"
-        menu.choice(:"7z") { archive_format = :"7z" }
-        menu.choices(:"tar.gz") { archive_format = :"tar.gz" }
-        menu.choices(:dar) { archive_format = :dar }
+        choose do |menu|
+          menu.prompt = "Archive format?"
+          menu.choice(:"7z") { archive_format = :"7z" }
+          menu.choices(:"tar.gz") { archive_format = :"tar.gz" }
+          menu.choices(:dar) { archive_format = :dar }
+        end
       end
       
       if @conf['noninteractive'] or (agree("Proceed?") {|q| q.default="yes"})

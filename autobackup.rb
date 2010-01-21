@@ -227,10 +227,14 @@ class Autobackup
     end
     pipe.close_read
     dev_to_kernel_id = {}
-    Dir.foreach(Kernel_disk_by_id) do |kernel_id|
-      next if kernel_id =~ /^\./ # exclude '.' and '..' (and hidden entries) 
-      dev = File.readlink!(Kernel_disk_by_id + '/' + kernel_id)
-      dev_to_kernel_id[dev] = kernel_id
+    begin
+      Dir.foreach(Kernel_disk_by_id) do |kernel_id|
+        next if kernel_id =~ /^\./ # exclude '.' and '..' (and hidden entries) 
+        dev = File.readlink!(Kernel_disk_by_id + '/' + kernel_id)
+        dev_to_kernel_id[dev] = kernel_id
+      end
+    rescue
+      STDERR.puts "Warning: no disks! (no /dev/disk/by-id found)"
     end
     disks_tmp_ary.each do |d|
       d[:kernel_id] = dev_to_kernel_id[d[:dev]] 

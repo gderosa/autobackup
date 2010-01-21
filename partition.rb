@@ -23,7 +23,7 @@ class Partition
     # We use blowfish encryption:
     # * disk images are piped to openssl
     # * DAR archive utility has its own encryption options
-    dir = h[:volumedir]
+    dir = File.expand_path h[:volumedir]
     passphrase = h[:passphrase]
     partimage = "partimage -g0 -c -V0 -d -o -z0 -Bx=y save #@dev stdout"
     ntfsclone = "ntfsclone --rescue -f -s -O - #@dev"
@@ -84,7 +84,7 @@ class Partition
     when :"7z"
       exclude = ''
       exclude = "-x@#{exclude_file_windows}" if mount_type =~ /fat|ntfs/i
-      cmd = "7z a #{exclude} -m0=Deflate -ms=off -mhc=off -mx=1 #{dest_archive}.7z ."
+      cmd = "7z a #{exclude} -m0=Deflate -ms=off -mhc=off -mx=1 #{dest_archive}.7z -w#{dir} ."
       #cmd << " -x@#{ROOTDIR}/share/ntfs.exclude" if @fstype == 'ntfs'
       system "cd #@mountpoint && sudo -E #{cmd}" 
     when :"tar.gz"

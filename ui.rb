@@ -6,6 +6,7 @@
 
 require 'pp' # DEBUG
 
+require 'fileutils'
 require 'rubygems'
 require 'uuid'
 require 'highline/import'
@@ -142,9 +143,10 @@ class Autobackup
 
   def ui_backup(h)
     machine_id = @current_machine.id = @remote_machine.id
+    @current_machine.data[:name] = @remote_machine.data[:name]
     save_current_machine # overwrite old hardware data
 
-    machinedir = @conf['localdir'] + "/" + machine_id
+    machinedir = File.expand_path ( @conf['localdir'] + "/" + machine_id )
 
     File.open(machinedir + "/" + Parted_txt, "w") do |f|
       f.puts @parted_output
@@ -152,6 +154,16 @@ class Autobackup
     File.open(machinedir + "/" + Disks_dat, "w") do |f|
       f.puts Marshal::dump(@current_disks)
     end
+    File.open(machinedir + "/name", "w") do |f|
+      f.puts @current_machine.data[:name]
+    end
+    # Don't trust id attribute in XML to get machine saved name in a human
+    # readable form, you will read "name" file instead
+
+    FileUtils::ln_sf( 
+        machinedir, 
+        "#{ROOTDIR}/names/#{@current_machine.data[:name]}"
+    )
 
     @current_disks.each do |disk| 
       next if (not disk.kernel_id) or disk.kernel_id.length < 1

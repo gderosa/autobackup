@@ -6,8 +6,9 @@
 
 require 'pp' # DEBUG
 
-require 'fileutils'
 require 'rubygems'
+require 'fileutils'
+require 'pathname'
 require 'uuid'
 require 'highline/import'
 require 'rexml/document'
@@ -159,10 +160,13 @@ class Autobackup
     end
     # Don't trust id attribute in XML to get machine saved name in a human
     # readable form, you will read "name" file instead
-
-    FileUtils::ln_sf( 
-        machinedir, 
-        "#{ROOTDIR}/names/#{@current_machine.data[:name]}"
+    
+    machinedir_path = Pathname.new machinedir
+    namesdir_path = Pathname.new "#{ROOTDIR}/names"
+    relative_path = machinedir_path.relative_path_from namesdir_path
+    FileUtils::ln_sf( # implicit conversion to String
+        relative_path, 
+        "#{namesdir_path}/#{@current_machine.data[:name]}"
     )
 
     @current_disks.each do |disk| 

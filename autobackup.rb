@@ -298,6 +298,7 @@ class Autobackup
     min_percent_match = 60 # first filter
     @remote_machines.each_value do |remote_machine|
       match = @current_machine.compare_to_w_score(remote_machine)
+      next unless match # skip ``nil''
       if match[:percent_match] > min_percent_match
         match[:id] = remote_machine.id
         @machine_matches << match

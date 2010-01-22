@@ -31,15 +31,17 @@ class Machine
       # A caching mechanism to not parse XML every time...
       # Update cache (i.e. datfile) if it's out of date
       if \
-        (File.stat(xmlfile).mtime.to_i > File.stat(datfile).mtime.to_i) or \
-        nocache or \
-        (not File.readable?(datfile))  
+        File.readable? xmlfile and (
+          (File.stat(xmlfile).mtime.to_i > File.stat(datfile).mtime.to_i) or \
+          nocache or \
+          (not File.readable?(datfile))  
+        )
 
         @data = Machine::parse_lshw_xml(File.read(xmlfile))
         File.open(datfile, "w") do |f|
           f.puts Marshal::dump(@data)
         end
-      else
+      elsif File.readable? datfile
         @data = Marshal::load(File.read(datfile)) 
       end
 
@@ -272,6 +274,9 @@ class Machine
   end
 
   def compare_to(other_machine) 
+    return nil unless (other_machine and other_machine.data)
+    return nil unless @data
+
     same_components = {
       # Be fuzzy, be happy!    
       # Do not use boolean since we might need :partly, :maybe or :undef ;-)
@@ -380,6 +385,8 @@ class Machine
     }
 
     same_components = compare_to(other_machine)
+
+    return nil unless same_components
 
     score = 0.0
     score_max = 0.0

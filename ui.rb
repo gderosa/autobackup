@@ -28,9 +28,23 @@ class Autobackup
       name = ""
       print "This is the first time you backup this computer. "
       print "Choose a name for it:\n"
-      while name=$stdin.gets.strip 
-        break if name =~ /^[0-9a-z](.*\S)?$/i
-        print "Invalid name. Choose another one: "
+      loop do 
+        while name=$stdin.gets.strip 
+          break if name =~ /^[0-9a-z](.*\S)?$/i
+          print "Invalid name. Choose another one: "
+        end
+        if Dir.entries("#{ROOTDIR}/names").include? name
+          say "This name already exists."
+          if agree("Should I delete old data? (Be careful!)", false)
+            FileUtils::rm_rf(
+              File.readlink!("#{ROOTDIR}/names/#{name}"),
+              {:secure => true, :verbose =>true, :noop => true} 
+            )
+            File.unlink "#{ROOTDIR}/names/#{name}"
+          end
+        else
+          break
+        end
       end
       puts "Updating you data..."
       xmldoc = REXML::Document::new @current_machine_xmldata

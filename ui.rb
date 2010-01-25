@@ -126,6 +126,8 @@ class Autobackup
     elsif $single_command == 'archive'
       passphrase = ui_create_passphrase
       ui_backup(:passphrase => passphrase)
+    elsif $single_command == 'antivirus'
+      ui_antivirus
     end
   end
 
@@ -246,6 +248,59 @@ class Autobackup
     end
     puts
   end
+
+  def ui_antivirus
+    machine_id = @current_machine.id = @remote_machine.id
+    @current_machine.data[:name] = @remote_machine.data[:name]
+    # save_current_machine # overwrite old hardware data
+
+    machinedir = File.expand_path ( @conf['localdir'] + "/" + machine_id )
+
+    @current_disks.each do |disk| 
+      next if (not disk.kernel_id) or disk.kernel_id.length < 1
+        # to avoid cdroms etc.
+
+      puts "\nVirus/Malware scan of disk #{disk.kernel_id}" + \
+        "\n (#{disk.dev}, size=#{disk.size})" # TODO: Disk#ui_print?
+
+      if @conf['noninteractive'] or (agree("Proceed?") {|q| q.default="yes"})
+
+        diskdir = machinedir + "/" + disk.kernel_id
+
+        begin
+          File.stat(diskdir)
+        rescue Errno::ENOENT
+          Dir.mkdir(diskdir, 0700)   
+        end
+
+        disk.volumes.each do |part|
+          puts
+          puts "Visrus/Malware scan of partition ##{part.pn}"
+          puts
+          next if ["linux-swap", ""].include? part.fstype
+
+          volumedir = diskdir + "/" + part.pn
+
+          unless File.exists? "#{volumedir}/.archive_success" or File.exists? "#{volumedir}/img.gz"
+            puts  "You should make the backup first!" 
+            response = ask("Should I continue anyway? (yes or no)") 
+            exit unless response.strip.downcase == 'yes'
+          end
+
+          unless File.exists?(volumedir) 
+            Dir.mkdir(volumedir, 0700)
+          end
+
+          puts "\n  partition #{part.pn} (#{part.dev}) Type = #{part.fstype}"
+          part.antivirus(
+            :volumedir => volumedir 
+          ) 
+        end
+      end
+    end
+    puts
+  end
+
 
   def ui_restore(passphrase=nil)
     if @remote_disks.length == 0

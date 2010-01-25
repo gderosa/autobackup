@@ -75,7 +75,9 @@ class Partition
 
     mount({:options => 'ro', :type => mount_type}) unless mounted?
     #puts "#@dev -> #@mountpoint -> #{dest_archive}"
-
+    
+    FileUtils.rm "#{dir}/.archive_success" if File.exists? "#{dir}/.archive_success"
+    archive_success = false
     case h[:archive_format]
     when :dar
       cmd = "dar -v -z1 -M --no-warn -R #@mountpoint -c #{dest_archive} "
@@ -87,7 +89,7 @@ class Partition
       cmd << '-Z "*.cab" -Z "*.zip" -Z "*.gz" -Z "*.bz2" -Z "*.lz*" -Z "*.jar" '
       cmd << '-Z "*.png" -Z "*.gif" -Z "*.jp*g" '
       cmd << '-Z "*.mp*" -Z "*.avi" -Z "*.mov" -Z "*.wm*" '
-      system "sudo -E #{cmd}"
+      archive_success = system("sudo -E #{cmd}")
     when :"7z"
       exclude = ''
       exclude = "-x@#{exclude_file_windows}" if mount_type =~ /fat|ntfs/i
@@ -95,7 +97,7 @@ class Partition
       encrypt = "-mhe=on -p#{passphrase}" if passphrase
       cmd = "7z a #{exclude} #{encrypt} -m0=Deflate -ms=off -mhc=off -mx=1 #{dest_archive}.7z -w#{dir} ."
       #cmd << " -x@#{ROOTDIR}/share/ntfs.exclude" if @fstype == 'ntfs'
-      system "cd #@mountpoint && sudo -E #{cmd}" 
+      archive_success = system("cd #@mountpoint && sudo -E #{cmd}") 
     when :"tar.gz" 
       # if you choose tar.gz you're a Unix guy and you're supposed to know
       # how to make a pipe with openssl... aren't you?
@@ -104,11 +106,28 @@ class Partition
       else
         cmd = "GZIP==--fast tar -C #@mountpoint cvzf #{dest_archive}.tar.gz ."
       end
-      system "sudo -E #{cmd}"
+      archive_success = (system "sudo -E #{cmd}")
     end
-
+    if archive_success
+      system "touch #{dir}/.archive_success"
+    end
     umount
 
+  end
+
+  def antivirus(h)
+    was_mounted = mounted?
+    mount unless mounted?
+
+    puts "ANTIVIRUS! #{h[:volumedir]}"
+
+    unless File.exists? "#@mountpoint/QUARANTINE"
+      system "sudo mkdir -p #@mountpoint/QUARANTINE"
+    end
+
+    system "sudo -E clamscan -r #@mountpoint --detect-pua --move=#@mountpoint/QUARANTINE --log=#@mountpoint/QUARANTINE/ClamAV.log"
+
+    umount unless was_mounted
   end
 
   def restore(dir, fstype, crypto_options=nil)
@@ -166,7 +185,11 @@ class Partition
       pp h
       exit
     end
-    type = h[:type] || 'auto'
+    if @fstype == 'ntfs' and not h[:type]
+      type = 'ntfs-3g'
+    else
+      type = h[:type] || 'auto'
+    end
     options = h[:options] ? "-o #{h[:options]}" : ""
     Dir.mkdir(mountpoint) unless File.directory?(mountpoint)
     if system("sudo -E mount -t #{type} #@dev #{mountpoint} #{options}") 

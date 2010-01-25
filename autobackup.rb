@@ -29,7 +29,7 @@ class Autobackup
   Disks_dat = "disks.dat"
   Lshw_xml_cache = "/tmp/" + Lshw_xml
   Kernel_disk_by_id = "/dev/disk/by-id"
-  Single_Commands = %w{clone archive malware-scan}
+  Single_Commands = %w{clone archive antivirus}
 
   def initialize
     @conf_file = 'autobackup.conf'

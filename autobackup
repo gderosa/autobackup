@@ -3,7 +3,8 @@
 cd `dirname $0`
 ./autobackup.rb $*
 
-echo "Press ENTER to exit"
+echo
+echo "* FINISHED!"
 read
 
 

@@ -116,11 +116,23 @@ class Partition
   end
 
   def antivirus(h)
+    log = "#{h[:volumedir]}/ClamAV.log"
+    log_old = "#{h[:volumedir]}/ClamAV.log.old"
     was_mounted = mounted?
-    mount unless mounted?
+    unless mounted?
+      if @fstype == 'ntfs'
+        mount(:options => 'force') # sometimes it's necessary w/ faulty HDDs
+      else
+        mount # TODO? force vfat too? and Linux filesystems? has "-o force"  the same syntax for other filesystems? 
+      end
+    end
 
     unless File.exists? "#@mountpoint/QUARANTINE"
       system "sudo mkdir -p #@mountpoint/QUARANTINE"
+    end
+
+    if File.exists? log
+      FileUtils.mv log, log_old      
     end
 
     system "sudo -E clamscan -r #@mountpoint --detect-pua --move=#@mountpoint/QUARANTINE --log=#{h[:volumedir]}/ClamAV.log"

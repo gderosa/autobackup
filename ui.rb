@@ -183,7 +183,7 @@ class Autobackup
     FileUtils::ln_sf( # implicit conversion to String
         relative_path, 
         "#{namesdir_path}/#{@current_machine.data[:name]}"
-    )
+    ) unless File.exists? "#{namesdir_path}/#{@current_machine.data[:name]}"
 
     @current_disks.each do |disk| 
       next if (not disk.kernel_id) or disk.kernel_id.length < 1

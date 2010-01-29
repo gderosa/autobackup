@@ -119,13 +119,11 @@ class Partition
     was_mounted = mounted?
     mount unless mounted?
 
-    puts "ANTIVIRUS! #{h[:volumedir]}"
-
     unless File.exists? "#@mountpoint/QUARANTINE"
       system "sudo mkdir -p #@mountpoint/QUARANTINE"
     end
 
-    system "sudo -E clamscan -r #@mountpoint --detect-pua --move=#@mountpoint/QUARANTINE --log=#@mountpoint/QUARANTINE/ClamAV.log"
+    system "sudo -E clamscan -r #@mountpoint --detect-pua --move=#@mountpoint/QUARANTINE --log=#{h[:volumedir]}/ClamAV.log"
 
     umount unless was_mounted
   end

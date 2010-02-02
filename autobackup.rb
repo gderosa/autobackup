@@ -149,7 +149,7 @@ class Autobackup
     puts "Detecting hardware... "
     #$stdout.flush
     if @conf['nocache'] or (not File.readable?(Lshw_xml_cache))
-      @current_machine_xmldata = `sudo lshw -xml`
+      @current_machine_xmldata = `sudo -E lshw -xml`
       f = File.open(Lshw_xml_cache, "w")
       f.print @current_machine_xmldata
       f.close

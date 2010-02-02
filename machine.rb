@@ -73,7 +73,11 @@ class Machine
     end
     data[:vendor]                         = ckBogus(elems["vendor"].text)
     data[:vendor]                         = ckBogus(elems["vendor"].text)
-    data[:serial]                         = ckBogus(elems["serial"].text)
+    begin
+      data[:serial]                         = ckBogus(elems["serial"].text)
+    rescue
+      data[:serial]                       = nil
+    end
 
     begin
       data[:uuid]                         = \
@@ -93,9 +97,11 @@ class Machine
     ##################### MOTHERBOARD #######################
     data[:mobo]                           = {}
     data[:mobo][:vendor]                  = \
-      ckBogus(elems["node[@id='core']/vendor"].text)
+      ckBogus(elems["node[@id='core']/vendor"].text) if 
+        elems["node[@id='core']/vendor"]
     data[:mobo][:product]                 = \
-      ckBogus(elems["node[@id='core']/product"].text)
+      ckBogus(elems["node[@id='core']/product"].text) if 
+        elems["node[@id='core']/product"]
 
     ##################### PROCESSOR #########################
     data[:cpu]                            = {}
@@ -324,7 +330,11 @@ class Machine
     end
 
     # MOBO
-    if not ( @data[:mobo][:product] and @data[:mobo][:vendor] )
+    if 
+        (!@data[:mobo][:product]  and ! other_machine.data[:mobo][:product]) or
+        (!@data[:mobo][:vendor]   and ! other_machine.data[:mobo][:vendor]) 
+      same_components[:mobo] = :undef
+    elsif not ( @data[:mobo][:product] and @data[:mobo][:vendor] )
       same_components[:mobo] = :no
     else
       if @data[:mobo][:product].casecmp( other_machine.data[:mobo][:product] ) == 0 and @data[:mobo][:vendor].casecmp( other_machine.data[:mobo][:vendor] ) == 0

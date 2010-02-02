@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
 # Author::    Guido De Rosa  (mailto:job@guidoderosa.net)
-# Copyright:: Copyright (C) 2009, 2010 Guido De Rosa <guido.derosa*vemarsas.it>
+# Copyright:: Copyright (C) 2009, 2010 Guido De Rosa 
 # License::   General Public License, version 2
 
 require 'pp' # DEBUG
@@ -55,6 +55,7 @@ class Autobackup
       # rightly, do not parse the xml again, edit data structure directly
       @current_machine.data[:name] = name
       @remote_machine = @current_machine
+      @current_machine.id = name
       save_current_machine
       puts "\nOk. Your machine details follow:\n\n"
       puts @current_machine.ui_print

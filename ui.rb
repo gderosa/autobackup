@@ -33,14 +33,13 @@ class Autobackup
           break if name =~ /^[0-9a-z](.*\S)?$/i
           print "Invalid name. Choose another one: "
         end
-        if Dir.entries("#{ROOTDIR}/names").include? name
+        if Dir.entries(@conf['localdir']).include? name
           say "This name already exists."
           if agree("Should I delete old data? (Be careful!)", false)
             FileUtils::rm_rf(
-              File.readlink!("#{ROOTDIR}/names/#{name}"),
-              {:secure => true, :verbose =>true, :noop => true} 
+              "#{@conf['localdir']}/#{name}", 
+              {:secure => true, :verbose =>true} 
             )
-            File.unlink "#{ROOTDIR}/names/#{name}"
           end
         else
           break
@@ -181,10 +180,6 @@ class Autobackup
     machinedir_path = Pathname.new machinedir
     namesdir_path = Pathname.new "#{ROOTDIR}/names"
     relative_path = machinedir_path.relative_path_from namesdir_path
-    FileUtils::ln_sf( # implicit conversion to String
-        relative_path, 
-        "#{namesdir_path}/#{@current_machine.data[:name]}"
-    ) unless File.exists? "#{namesdir_path}/#{@current_machine.data[:name]}"
 
     @current_disks.each do |disk| 
       next if (not disk.kernel_id) or disk.kernel_id.length < 1

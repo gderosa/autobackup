@@ -135,7 +135,8 @@ class Partition
       FileUtils.mv log, log_old      
     end
 
-    system "sudo -E clamscan -r #@mountpoint --detect-pua --move=#@mountpoint/QUARANTINE --log=#{h[:volumedir]}/ClamAV.log"
+    system "sudo -E clamscan -r #@mountpoint --detect-pua --move=#@mountpoint/QUARANTINE --log=#{@mountpoint}/ClamAV.log"
+    FileUtils.cp "#{@mountpoint}/ClamAV.log", "#{h[:volumedir]}/"
 
     umount unless was_mounted
   end

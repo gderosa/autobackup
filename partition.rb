@@ -102,9 +102,9 @@ class Partition
       # if you choose tar.gz you're a Unix guy and you're supposed to know
       # how to make a pipe with openssl... aren't you?
       if passphrase
-        cmd = "GZIP==--fast tar -C #@mountpoint cvz . | #{openssl_bf_encrypt} > #{dest_archive}.tar.gz.bf"
+        cmd = "GZIP=--fast tar -C #@mountpoint -cvz . | #{openssl_bf_encrypt} > #{dest_archive}.tar.gz.bf"
       else
-        cmd = "GZIP==--fast tar -C #@mountpoint cvzf #{dest_archive}.tar.gz ."
+        cmd = "GZIP=--fast tar -C #@mountpoint -cvzf #{dest_archive}.tar.gz ."
       end
       archive_success = (system "sudo -E #{cmd}")
     end
